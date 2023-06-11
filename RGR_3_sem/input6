@@ -1,0 +1,10 @@
+push 1
+pop x
+push x
+write
+push x
+push 1
++
+pop x
+jmp 3
+; Бесконечный цикл.

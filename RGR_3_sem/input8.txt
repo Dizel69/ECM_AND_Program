@@ -1,0 +1,34 @@
+boolmatrix A	
+inversion
+write
+end
+
+push 15
+write
+boolmatrix A
+inversion
+write
+boolmatrix A
+transpos
+write
+boolmatrix A
+boolmatrix B
+&
+write
+boolmatrix A
+boolmatrix B
+|
+write
+boolmatrix A
+boolmatrix B
+*
+write
+boolmatrix A
+boolmatrix B
+=
+write
+boolmatrix A
+boolmatrix B
+!=
+write
+end 
