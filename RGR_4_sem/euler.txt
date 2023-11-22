@@ -1,0 +1,27 @@
+-- ввод n
+declare n int;
+n <- cin;
+
+-- главный цикл считает количесвто чисел,
+-- меньших либо равных n и взаимнопростых с ним
+declare i int, count int;
+set count to 1;
+set i to 2;
+while i <= n do
+    declare a int, b int;
+    set a to i; set b to n;
+    -- внутренний цикл считает НОД(i, n)
+
+    while a * b > 0 do
+        if a > b then
+            set a to a % b;
+        else
+            set b to b % a;
+        end;
+    end;
+
+    -- если НОД(i, n) = 1, то увеличиваем счётчик
+    if a + b == 1 then
+        set count to count + 1;
+    end;
+end;

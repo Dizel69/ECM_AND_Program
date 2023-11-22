@@ -1,0 +1,36 @@
+<--- ввод n --->
+n : int;
+load (n);
+
+<<< главный цикл считает количесвто чисел,
+     меньших либо равных n и взаимнопростых с ним
+>>>
+i, count : int;
+let count = 1;
+L for i = 2 to n
+    a, b : int;
+    let a = i; let b = n;
+    <<< внутренний цикл считает НОД(i, n) >>>
+    :I
+    if a * b == 0 goto I1;
+
+    if a > b goto J1 else goto J2;
+    :J1
+        let a = a % b;
+        goto I;
+    :J2
+        let a = a % b;
+        goto I;
+
+    :I1
+
+    <<< если НОД(i, n) = 1, то увеличиваем счётчик >>>
+    if a + b != 1 goto I2;
+
+    let count = count + 1;
+
+    :I2
+next L
+
+<<< вывод результата >>>
+put(count);

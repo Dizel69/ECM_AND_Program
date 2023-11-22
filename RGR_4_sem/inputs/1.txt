@@ -1,0 +1,25 @@
+;
+x, y, z : int;
+let x = y= z = 1 + 1 / 2 %derivative([]);
+L for i = 1 to 2 adding 8
+;;;
+next L
+if 1 < 1 goto L1
+;
+
+load(x,y,z);
+put(1, 2*3, 3, coeff([], 2) );
+:L1
+:L1
+goto L2;
+
+switch (0)
+case 0: ;;; break;
+case 2: ;;
+default: break;
+end switch;
+
+error;
+
+<<< dzf >>dfdf
+>???.>>>

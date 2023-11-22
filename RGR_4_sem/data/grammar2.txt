@@ -1,0 +1,53 @@
+S -> <pr>
+<pr> -> <op> <pr> | <op>
+<op> -> ;
+<op> -> <prisv> to E ;
+<prisv> -> <prisv1> V
+<prisv> -> set V
+<prisv1> -> <prisv> ,
+<op> -> <ob> ;
+<ob> -> declare <ob1>
+<ob1> -> V TYPE <comma> <ob1>
+<ob1> -> V TYPE
+TYPE -> int | perestanovka
+<comma> -> ,
+<op> -> <while> end ;
+<while> -> while <test> do <pr>
+<op> -> <for1> end ;
+<for1> -> <for2> do <pr>
+<for2> -> for each V in E
+<op> -> <if1> end ;
+<op> -> <if1> <else> end ;
+<if1> -> if <test> then <pr>
+<else> -> else <pr>
+<test> -> E rel E
+<op> -> <listV> cin ;
+<listV> -> <listV> V <-
+<listV> -> V <-
+<op> -> <listE> cout ;
+<listE> -> <listE> E "->"
+<listE> -> E "->"
+<op> -> L
+<op> -> <jump> ;
+<jump> -> jump V
+<op> -> bad ;
+<op> -> comment
+E -> T | T E'
+E' -> + T E' | - T E' | + T | - T
+T -> F | F T'
+T' -> * F T' | / F T' | % F T' | * F | / F | % F
+F -> ( E ) | C | V
+F -> find ( E <comma> <E)>
+F -> kompos ( E <comma> <E)>
+F -> val ( E <comma> <E)>
+<E)> -> E )
+F -> wide ( E )
+F -> ndel ( E )
+<op> -> <switch> <otherwise> end ;
+<op> -> <switch> end ;
+<switch> -> switch ( E ) <when>
+<when> -> <when1> <when> | <when1>
+<when1> -> <when2> C : <pr>
+<when2> -> <when3> C | when
+<when3> -> <when2> ,
+<otherwise> -> otherwise <pr>
