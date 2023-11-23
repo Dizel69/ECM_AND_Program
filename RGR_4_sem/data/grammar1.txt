@@ -1,0 +1,93 @@
+<op> -> <prisv_>
+<prisv_> -> let <prisv>
+<prisv> -> V <prisv1>
+<prisv1> -> = <prisv>
+<prisv1> -> <=E>
+<=E> -> = E
+
+
+int a, b ;
+boolMatrix c ;
+let a = ( 2 + 3 - 8 ) * ( ( ( ( ( ( a - 7 ) ) ) ) ) + b ) ;
+
+
+
+int a , b ;
+while a > b do 
+;
+end ;
+
+if a > b then ; 
+end ;
+
+let a = ( 2 + 3 - 8 ) * ( ( ( ( ( ( a - 7 ) ) ) ) ) + b ) ; rem &*$^riyv542b6 597 
+let a = 2;
+if a == b then 
+let a = a - b;
+else ;
+end ;
+
+rem fdsf
+
+
+S -> <pr> | <ob> <pr>
+<pr> -> <op> <pr> | <op>
+
+<ob> = <ob> <ob1> | <ob1>
+<ob1> = TYPE <ob2> ;
+<ob2> -> V <ov3>
+<ob3> -> <comma> <ob1>
+<ob2> -> V
+TYPE -> int | multiset
+
+<op> -> ;
+
+<op> -> <prisv_> <=E> ;
+<=E> -> = E
+<prisv_> -> let <prisv>
+<prisv> -> <prisv1> V
+<prisv1> -> = <prisv>
+
+<comma> -> ,
+
+<op> -> <while> end while ;
+<while> -> while <test> do <pr>
+
+<op> -> <for1> end for ;
+<for1> -> <for2> = E <to> do <pr>
+<to> -> to E
+<for2> -> for V
+
+<op> -> <if1> end if ;
+<op> -> <if1> <else> end if ;
+<if1> -> if <test> then <pr>
+<else> -> else <pr>
+<test> -> E rel E
+
+<op> -> load ( <listV>
+<listV> -> V <comma> <listV>
+<listV> -> V ) ;
+
+<op> -> put ( E )
+<op> -> put ( E <comma> <E)>
+
+<op> -> L
+<op> -> <goto> ;
+<goto> -> goto V
+
+<op> -> exception ;
+
+<op> -> comment
+
+E -> T | T E'
+E' -> + T E' | - T E' | + T | - T
+T -> F | F T'
+T' -> * F T' | / F T' | % F T' | * F | / F | % F
+F -> ( E ) | C | V
+F -> difference ( E <comma> <E)>
+F -> symmetric_difference ( E <comma> <E)>
+F -> intersection ( E <comma> <E)>
+F -> unification ( E <comma> <E)>
+<E)> -> E )
+F -> wide ( E )
+F -> ndel ( E )

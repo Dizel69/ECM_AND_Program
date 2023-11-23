@@ -1,0 +1,40 @@
+S -> <ob_sp> <pr>
+<pr> -> <op> <pr> | <op>
+
+<ob_sp> -> <ob_sp> <ob> | <ob>
+<ob> -> <ob2> ;
+<ob2> -> <TYPE_V> <ob3>
+<ob2> -> <TYPE_V>
+<ob3> -> , <V> <ob3>
+<ob3> -> , <V>
+<TYPE_V> -> <TYPE> V
+<TYPE> -> int | boolMatrix
+
+<op> -> ;
+
+<op> -> let V <=E>
+<=E> -> = E
+
+<op> -> <while> end ;
+<while> -> while <test> do <pr>
+
+<op> -> <if1> end ;
+<op> -> <if1> <else> end ;
+<if1> -> if <test> then <pr>
+<else> -> else <pr>
+<test> -> E rel E
+
+<op> -> L
+<op> -> <jump> ;
+<jump> -> jump L
+
+<op> -> abort ;
+
+<op> -> comment
+
+E -> T | T E'
+E' -> + T E' | - T E' | + T | - T
+T -> F | F T'
+T' -> * F T' | / F T' | % F T' | * F | / F | % F
+F -> ( E ) | C | <V>
+<V> -> V

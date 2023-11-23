@@ -1,0 +1,12 @@
+int a, b ;
+boolMatrix c ;
+let a = 2 - 45 / t * ( 7 * ( ( ( ( ( ( 5 ) ) ) ) ) - 7 ) - 0 ) + 1 + 478 - i89 ;
+while a < b do ; end ; 
+;
+if a < b then let y = 2 ; else ; end ;
+abort ;
+:L
+jump :L ;
+<<< dasdaasa    
+asdasd
+gasggggggg>>>
