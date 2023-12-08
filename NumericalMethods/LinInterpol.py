@@ -1,7 +1,8 @@
+# Программа по нахождению Кусочно-Линейной Интерполяции
 import numpy as np
 from matplotlib import pyplot as plt
 
-
+# Вводим числа
 print("Введите число узлов:")
 numOfNodes = int(input())
 print("Введите первый узел:")
