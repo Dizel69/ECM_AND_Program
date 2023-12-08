@@ -3,14 +3,11 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 # Вводим числа
-print("Введите число узлов:")
-numOfNodes = int(input())
-print("Введите первый узел:")
-L = float(input())
-print("Введите последний узел:")
-R = float(input())
-print("Введите аргумент функции:")
-ArgFunk = float(input())
+
+numOfNodes = int(input("Введите число узлов: "))
+L = float(input("Введите первый узел: "))
+R = float(input("Введите последний узел: "))
+ArgFunk = float(input("Введите аргумент функции: "))
 
 # Изначальная функция
 f = np.sin
