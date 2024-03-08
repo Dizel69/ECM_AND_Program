@@ -1,4 +1,6 @@
-﻿#include <iostream>
+﻿//Программа перемножает матрицы с одним поток и с несколькими.
+
+#include <iostream>
 #include <thread>
 #include <ctime>
 using namespace std;
