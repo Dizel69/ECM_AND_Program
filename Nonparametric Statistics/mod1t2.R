@@ -8,24 +8,6 @@
 x<-c(85, 64, 50, 78, 49, 96, 34, 58, 75, 54)
 y<-c(65, 78, 93, 55, 70, 90, 80, 79, 82, 67)
 
-##########Визуализация##################
-par(mfrow=c(1,3))
-
-boxplot(x, y, col ="coral", main = "jaw length", outer = T,
-        names=c("x", "y"))
-
-qqnorm(x, xlab="Выбоp. квантили", ylab="Теор. квантили", main="Норм. QQ-график")
-qqline(x,lwd=2 , col="red")
-
-qqnorm(y, xlab="Выбоp. квантили", ylab="Теор. квантили", main="Норм. QQ-график")
-qqline(y,lwd=2 , col="red")
-
-shapiro.test(x)
-shapiro.test(y)
-
-dev.off()
-
-
 ###часть выборки без связей  1, 2 и 6-я пары#####
 
 x1<-c(120, 107, 111)

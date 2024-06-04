@@ -18,29 +18,6 @@ fact=as.factor(rep(c("I", "II", "III"), c(nx,ny, nz)))
 df=data.frame(dat,fact)
 df
 
-##########Визуализация##################
-boxplot(dat~fact, col ="coral", main = "Data", outer = T)
-#дисперсии визуально не равны -> тест на общее различие групп   
-
-par(mfrow=c(1,3))
-
-qqnorm(x, xlab="Выбоp. квантили", ylab="Теор. квантили", main="Норм. QQ-график")
-qqline(x,lwd=2 , col="red")
-
-qqnorm(y, xlab="Выбоp. квантили", ylab="Теор. квантили", main="Норм. QQ-график")
-qqline(y,lwd=2 , col="red")
-
-
-qqnorm(z, xlab="Выбоp. квантили", ylab="Теор. квантили", main="Норм. QQ-график")
-qqline(z,lwd=2 , col="red")
-
-shapiro.test(x)
-shapiro.test(y)
-shapiro.test(z)
-
-dev.off()
-
-
 #####Без  связей - точный критерий  
 
 x1<-c(20.6,25.2)
