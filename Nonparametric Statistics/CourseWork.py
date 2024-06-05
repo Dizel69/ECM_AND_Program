@@ -1,43 +1,42 @@
+#В данной программе вычисляется критерий Фишера-Йейтса-Терри-Гёрфдинга
 import numpy as np
-from itertools import permutations, combinations
+from scipy.special import erfinv
+from itertools import combinations
 
+# Функция для вычисления значений a_{m+n}(i)
+def compute_an_values(m, n):
+    combined_size = m + n
+    i = np.arange(1, combined_size)
+    p = (i - 3/8) / (combined_size + 1/4)
+    an = 4.91 * (np.power(p, 0.14) - np.power(1 - p, 0.14))
+    return an
 
 # Функция для вычисления статистики S
 def compute_S(*samples):
-    combined = np.sort(np.concatenate(samples))
+    combined = np.concatenate(samples)
     ranks = np.argsort(np.argsort(combined)) + 1
     sample_sizes = [len(sample) for sample in samples]
-    combined_size = sum(sample_sizes)
-    an_values = []
 
+    m = sample_sizes[0]
+    n = sample_sizes[1]
+    an_values = compute_an_values(m, n)
+
+    S = 0
     for i, sample in enumerate(samples):
         R = ranks[sum(sample_sizes[:i]):sum(sample_sizes[:i + 1])]  # ранги элементов из текущей выборки
-        p = (R - 3 / 8) / (combined_size + 1 / 4)
-        an = 4.91 * (p ** 0.14) * ((1 - p) ** 0.14)
-        an_values.append(np.sum(an))
+        R = np.clip(R, 1, len(an_values))  # Убедимся, что ранги не выходят за пределы
+        S += np.sum(an_values[R - 1])
 
-    S = np.sum(an_values)
     return S
-
 
 # Функция для асимптотического распределения
 def asymptotic_critical_value(alpha, *sample_sizes):
     combined_size = sum(sample_sizes)
-    p = (np.arange(1, sample_sizes[0] + 1) - 3 / 8) / (combined_size + 1 / 4)
-    an = 4.91 * p ** 0.14 * (1 - p) ** 0.14
-    D_S = (np.prod(sample_sizes) / combined_size / (combined_size - 1)) * np.sum(an ** 2)
-    u_alpha = np.sqrt(2) * np.sqrt(2) * erfinv(1 - alpha)  # приближение к квантилю нормального распределения
+    m, n = sample_sizes[0], sum(sample_sizes[1:])
+    an_values = compute_an_values(m, n)
+    D_S = (m * n / (combined_size * (combined_size - 1))) * np.sum(an_values ** 2)
+    u_alpha = erfinv(1 - alpha) * np.sqrt(2)
     return u_alpha * np.sqrt(D_S)
-
-
-# Реализация функции erfinv
-def erfinv(y):
-    a = 0.147  # Константа для аппроксимации
-    ln_part = np.log(1 - y ** 2)
-    sqrt_part = np.sqrt(ln_part ** 2 - (2 * a) / (np.pi * (1 - 2 / (np.pi * a * ln_part + 2))))
-    result = np.sign(y) * np.sqrt(sqrt_part - ln_part)
-    return result
-
 
 # Функция для точного критерия
 def exact_critical_value(samples, alpha):
@@ -45,7 +44,6 @@ def exact_critical_value(samples, alpha):
     sample_sizes = [len(sample) for sample in samples]
     combined_size = sum(sample_sizes)
 
-    # Генерация всех возможных перестановок
     indices = np.arange(combined_size)
     all_combinations = list(combinations(indices, sample_sizes[0]))
     S_values = []
@@ -65,7 +63,6 @@ def exact_critical_value(samples, alpha):
     S_values = np.array(S_values)
     critical_value = np.percentile(S_values, 100 * (1 - alpha / 2))
     return critical_value
-
 
 # Основная функция для проверки гипотезы
 def fisher_yates_terry_gehfting_test(alpha=0.05, simulations=1000, *samples):
@@ -112,9 +109,21 @@ def fisher_yates_terry_gehfting_test(alpha=0.05, simulations=1000, *samples):
     print("Критическое значение методом имитации:", critical_value_sim)
     print("Гипотеза по методу имитации:", result_simulation)
 
+# Первый пример
+#x = [75, 78, 74, 76, 77, 80, 72, 74, 75, 79, 73, 77, 76, 75, 78]
+#y = [80, 82, 85, 81, 84, 86, 83, 85, 82, 84, 81, 83, 82, 80, 85, 81, 85]
+#z = [77, 79, 78, 81, 80, 82, 79, 81, 80, 78, 79, 81, 80, 82, 80]
+# Второй пример
+#x = [70, 75, 80, 85, 72, 77, 82, 78, 76, 79, 81, 73, 74]
+#y = [85, 88, 87, 86, 90, 84, 89, 83, 86, 85, 88, 87]
+#z = [90, 91, 92, 89, 93, 91, 92, 90, 91, 93, 92]
+# Третий пример
+#x = [60, 65, 62, 64, 66, 63, 67, 61, 68, 62, 64]
+#y = [70, 73, 72, 74, 71, 75, 73, 70, 72, 74, 90]
+#z = [78, 80, 79, 81, 77, 82, 80, 79, 81, 78, 80]
+# четвертый пример
+x = [56, 60, 62, 65, 70, 68, 72, 75, 77, 80]
+y = [61, 64, 67, 69, 73, 76, 78, 79, 81, 84]
+z = [58, 62, 66, 70, 74, 77, 79, 80, 83, 86, 88, 90]
 
-# Пример использования
-x = np.random.normal(0, 1, 3)
-y = np.random.normal(0.5, 1, 3)
-z = np.random.normal(0.2, 1, 3)
 fisher_yates_terry_gehfting_test(0.05, 1000, x, y, z)
