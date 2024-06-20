@@ -1,0 +1,16 @@
+
+ 10 let a = 3b
+ 20 if a>b go to 40
+ 30 fo i=1 to 5
+ 50 let = 3.25
+    go to 80
+ 70 next
+ 90 d=3*a23-4
+100 let z c5
+110 let m1=(35+x)/75.2)
+120 let t1=15.2+02
+130 for j=1 do 5 step 2
+140 let f=f*j
+150 next j
+160 end
+

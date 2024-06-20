@@ -1,0 +1,78 @@
+10 let m=5
+20 let n = 165
+21 let f = 1
+22 let s1 = 1
+23 let s2 = 1
+30 let q = m
+40 gosub 500
+41 if f <> 0 goto 44
+42 let s0 = 0
+43 goto 50
+44 gosub 600
+45 if f <> 0 goto 50
+46 let s0 = 0
+
+50 let q = n
+51 let f = 1
+60 gosub 500
+70 if f <> 0 goto 100
+80 let s1 = 0
+90 goto 1000
+100 gosub 600
+101 if f <> 0 goto 110
+102 let s1 = 0
+110 goto 1000
+300 let d1 = 0
+320 if o1 >= o2 goto 340
+325 let m1 = o1
+330 return
+340 let o1 = o1 - o2
+350 let d1 = d1 + 1
+360 goto 320
+
+500 for i = 2 to q/2
+510 let o1 = q
+520 let o2 = i
+530 gosub 300
+540 if m1 = 0 goto 560
+550 next i
+551 return 
+560 let f = 0
+570 return
+
+600 let o1 = q
+610 let o2 = 2
+620 gosub 300
+630 let m2 = m1
+640 let q = d1 
+650 if q> 0 goto 670 
+660 return 
+670 let o1 = q
+680 gosub 300
+690 if m1 <> m2 goto 630
+700 let f = 0
+710 return
+
+1000 end
+
+
+
+10 let m = 10
+20 let n = 3
+30 let f = 0
+40 gosub 180
+
+180 if f == 0 goto 195
+190 let t = n
+195 let t = m
+200 let n1 = 1
+210 let n2 = 1
+220 let res = n1 + n2
+225 if n2 > t goto 260
+230 if res == t goto 260
+240 n2 = res
+250 n2 = n1
+260 let f = 1
+270 return
+
+1000 end

@@ -1,0 +1,28 @@
+5   rem n - ����������� ����� ?
+
+10  let n=6
+20  let s=1
+30  for i=2 to n-1
+35  gosub 150
+40  if k=1 goto 60
+50  goto 70
+60  let s=s+i
+70  next i
+80  if s=n goto 100
+90  let r=0
+95  goto 110
+100  let r=1
+110  end
+
+150  let m=n
+160  if m<=0 goto 190
+170  let m=m-i
+180  goto 160
+190  if m=0 goto 220
+200  let k=0
+210  goto 230
+220  let k=1
+230  return
+
+
+

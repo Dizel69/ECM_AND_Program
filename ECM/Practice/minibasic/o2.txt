@@ -1,0 +1,29 @@
+10 let n = 6
+20 let m = 12
+25 let r = 1
+30 let p1 = n
+40 gosub 100
+60 let p1 = m
+70 gosub 100
+80 goto 400
+
+100 let c1 = 0
+110 if p1 > 0 goto 170
+120 let o1 = c1
+130 let o2 = 2
+135 gosub 300
+140 if m1 = 1 goto 160
+150 let r = 0
+160 return
+170 let o1 = p1
+180 let o2 = 3
+190 gosub 300
+200 140 if m1 <> 1 goto 110
+210 let c1 = c1 + 1
+
+300 let d1 = 0
+320 if o1 >= o2 goto 340
+325 let m1 = o1
+330 return
+340 let o1 = o1 - o2
+350 let d1 = d1 + 1

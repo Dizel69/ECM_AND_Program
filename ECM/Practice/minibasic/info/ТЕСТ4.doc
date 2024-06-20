@@ -1,0 +1,21 @@
+
+10  REM Выдать все сообщения об ошибках
+
+20  FOR A=1 STEP 1 TO 2
+
+30  FOR B=2
+
+40  LET Y=(B+(C*D))
+
+50  NEXT A
+
+60  IF A>B>C GO TO 100
+
+70  GOSUB  65
+
+80  GOTO  80
+
+80  IF A=B GOSUB 80
+
+90  END
+                                                                                                                                                                                                                                                                                                                                                                                                                           
