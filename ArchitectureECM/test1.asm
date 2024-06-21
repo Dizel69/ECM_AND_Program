@@ -1,0 +1,11 @@
+ADDIU $1, $0, 0x28
+ADDIU $2, $0, 0x38
+ADDIU $3, $0, 0x8
+ADDIU $4, $0, 0x2
+ADDIU $5, $0, 0x1
+
+SLTI $6, $2, 0xf
+SLTI $7, $3, 0x8
+SLTI $8, $1, 0x80
+SLTI $9, $2, 0x800
+

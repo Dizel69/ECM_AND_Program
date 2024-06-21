@@ -1,0 +1,7 @@
+ADDIU $1, $0, 0x28
+ADDIU $2, $0, 0x38
+ADDIU $3, $0, 0x8
+ADDIU $4, $0, 0x2
+ADDIU $5, $0, 0x1
+ 
+
