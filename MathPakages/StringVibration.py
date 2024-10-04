@@ -1,63 +1,91 @@
 import numpy as np
-import matplotlib
-matplotlib.use('TkAgg')  # Устанавливаем бэкенд для отображения
 import matplotlib.pyplot as plt
 
-
 # Параметры
-l = 1.0      # Длина струны
-R = 1.0      # Параметр R
-a = 1.0      # Скорость волны
-T = 10       # Время моделирования
-dx = 0.2     # Шаг по пространству (увеличен для наглядности вывода)
-dt = 0.1     # Шаг по времени
+R = 1.0         # Радиус
+a = 1.0         # Скорость волны
+l = 1.0         # Длина струны
+tau = 0.1       # Шаг по времени
+h = 0.25        # Шаг по пространству
+x_max = l       # Максимальное значение x
+t_max = 4       # Максимальное время
+n_x = int(x_max / h) + 1  # Количество точек по x
+n_t = 5  # Ограничиваем временные шаги до 4
 
-# Количество шагов
-nx = int(l / dx) + 1
-nt = int(T / dt)
+# Функция f(i, j) - считаем, что она равна нулю
+def f(i, j):
+    return 0
 
-# Инициализация массива
-u = np.zeros((nx, nt))
+# Начальные условия u_0(x_i)
+def u0(x):
+    return (4 * R / l**2) * x * (l - x)  # Начальное распределение u(x, 0)
 
-# Начальные условия
-for i in range(nx):
-    x = i * dx
-    u[i, 0] = (4 * R / l**2) * x * (l - x)
+# Точное решение для сравнения
+def exact_solution(x, t, a=1.0, l=1.0):
+    exact = 0
+    for n in range(50):  # Ограничиваем сумму ряда до 50 членов
+        term = ((-1)**n) * np.sin((2 * n + 1) * np.pi * x / l) * np.cos((2 * n + 1) * np.pi * a * t / l) / (2 * n + 1)**3
+        exact += term
+    return 32 * R / np.pi**3 * exact
 
-# Граничные условия
+# Сетка для хранения решений
+u = np.zeros((n_x, n_t))
+
+# Начальное распределение u(i, 0)
+for i in range(n_x):
+    u[i, 0] = u0(i * h)
+
+# Граничные условия: u(0, t) = u(l, t) = 0
 u[0, :] = 0
 u[-1, :] = 0
 
-# Явная схема
-for n in range(0, nt - 1):
-    for i in range(1, nx - 1):
-        u[i, n + 1] = (a**2 * dt**2 / dx**2) * (u[i + 1, n] - 2 * u[i, n] + u[i - 1, n]) + 2 * u[i, n] - u[i, n - 1]
+# Численное решение с использованием явной схемы
+for j in range(1, n_t - 1):
+    for i in range(1, n_x - 1):
+        u[i, j + 1] = 2 * u[i, j] - u[i, j - 1] + ((tau ** 2 * a ** 2) / h ** 2) * (u[i - 1, j] - 2 * u[i, j] + u[i + 1, j]) + tau ** 2 * f(i, j)
 
-# Вывод в виде таблицы
-print("  x/t |", end="")
-for n in range(nt):
-    print(f" {n*dt:.2f} ", end="")
+# Вывод численного решения в таблицу
+print("Численное решение u(i,j):")
+print(f"{'i\\j':<7}", end="")
+for j in range(n_t):
+    print(f"{j:<7}", end="")
 print()
 
-print("-" * (7 + nt * 7))  # Разделитель
-
-for i in range(nx):
-    print(f"{i*dx:.2f} |", end="")
-    for n in range(nt):
-        print(f" {u[i, n]:.2f} ", end="")
+for i in range(n_x):
+    print(f"{i:<7}", end="")
+    for j in range(n_t):
+        print(f"{u[i, j]:<7.3f}", end="")
     print()
 
-# Визуализация результатов
+# Вывод точного решения в таблицу для сравнения
+print("\nТочное решение u_exact(i,j):")
+print(f"{'i\\j':<7}", end="")
+for j in range(n_t):
+    print(f"{j:<7}", end="")
+print()
+
+for i in range(n_x):
+    print(f"{i:<7}", end="")
+    for j in range(n_t):
+        x = i * h
+        t = j * tau
+        print(f"{exact_solution(x, t):<7.3f}", end="")
+    print()
+
+# Визуализация численного и точного решения
 plt.figure(figsize=(10, 6))
 
-# Выбор нескольких временных шагов для отображения
-for n in range(0, nt, 10):  # Каждый 10-й временной шаг
-    plt.plot(np.linspace(0, l, nx), u[:, n], label=f't={n*dt:.2f}s')
+# Отображение численного решения для каждого временного шага
+for j in range(n_t):
+    plt.plot(np.linspace(0, x_max, n_x), u[:, j], label=f'Численное t={j * tau:.2f}s')
 
-plt.title('Решение уравнения колебания струны')
+# Отображение точного решения для тех же временных шагов
+for j in range(n_t):
+    plt.plot(np.linspace(0, x_max, n_x), [exact_solution(x, j * tau) for x in np.linspace(0, x_max, n_x)], '--', label=f'Точное t={j * tau:.2f}s')
+
+plt.title('Сравнение численного и точного решений уравнения колебания струны')
 plt.xlabel('Положение x (м)')
 plt.ylabel('u(x,t)')
 plt.legend()
 plt.grid()
 plt.show()
-plt.savefig('wave_equation_solution.png')
