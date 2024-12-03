@@ -44,6 +44,25 @@ def get_all_manufacturers():
     conn.close()
     return manufacturers
 
+def update_manufacturer(manufacturer_id, new_name, new_country):
+    """
+    Обновляет данные о производителе по ID.
+    """
+    conn = connect_to_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "UPDATE Manufacturer SET Name = %s, Country = %s WHERE Manufacturer_ID = %s;",
+            (new_name, new_country, manufacturer_id)
+        )
+        conn.commit()
+        print(f"Данные производителя с ID {manufacturer_id} обновлены.")
+    except Exception as e:
+        print(f"Ошибка при обновлении производителя: {e}")
+    finally:
+        cursor.close()
+        conn.close()
+
 
 ### CRUD для Лекарств ###
 def add_medicine(name, form, dosage, manufacturer_id):
@@ -77,6 +96,25 @@ def get_all_medicines():
     cursor.close()
     conn.close()
     return medicines
+
+def update_medicine(medicine_id, new_name, new_form, new_dosage, new_manufacturer_id):
+    """
+    Обновляет данные о лекарстве по ID.
+    """
+    conn = connect_to_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "UPDATE Medicine SET Name = %s, Form = %s, Dosage = %s, Manufacturer_ID = %s WHERE Medicine_ID = %s;",
+            (new_name, new_form, new_dosage, new_manufacturer_id, medicine_id)
+        )
+        conn.commit()
+        print(f"Данные лекарства с ID {medicine_id} обновлены.")
+    except Exception as e:
+        print(f"Ошибка при обновлении лекарства: {e}")
+    finally:
+        cursor.close()
+        conn.close()
 
 
 ### CRUD для записей о применении ###
@@ -112,6 +150,25 @@ def get_all_applications():
     conn.close()
     return applications
 
+def update_application(application_id, new_medicine_id, new_disease, new_usage_method):
+    """
+    Обновляет данные о применении по ID.
+    """
+    conn = connect_to_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "UPDATE Application SET Medicine_ID = %s, Disease = %s, Usage_method = %s WHERE Application_ID = %s;",
+            (new_medicine_id, new_disease, new_usage_method, application_id)
+        )
+        conn.commit()
+        print(f"Данные применения с ID {application_id} обновлены.")
+    except Exception as e:
+        print(f"Ошибка при обновлении применения: {e}")
+    finally:
+        cursor.close()
+        conn.close()
+
 
 ### CRUD для Аптек ###
 def add_pharmacy(name, address):
@@ -143,6 +200,25 @@ def get_all_pharmacies():
     cursor.close()
     conn.close()
     return pharmacies
+
+def update_pharmacy(pharmacy_id, new_name, new_address):
+    """
+    Обновляет данные о аптеке по ID.
+    """
+    conn = connect_to_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "UPDATE Pharmacy SET Name = %s, Address = %s WHERE Pharmacy_ID = %s;",
+            (new_name, new_address, pharmacy_id)
+        )
+        conn.commit()
+        print(f"Данные аптеки с ID {pharmacy_id} обновлены.")
+    except Exception as e:
+        print(f"Ошибка при обновлении аптеки: {e}")
+    finally:
+        cursor.close()
+        conn.close()
 
 
 ### CRUD для продаж ###
@@ -177,6 +253,25 @@ def get_all_sales():
     cursor.close()
     conn.close()
     return sales
+
+def update_sale(sale_id, new_medicine_id, new_pharmacy_id, new_sale_date, new_price):
+    """
+    Обновляет данные о продаже по ID.
+    """
+    conn = connect_to_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "UPDATE Sale SET Medicine_ID = %s, Pharmacy_ID = %s, Sale_date = %s, Price = %s WHERE Sale_ID = %s;",
+            (new_medicine_id, new_pharmacy_id, new_sale_date, new_price, sale_id)
+        )
+        conn.commit()
+        print(f"Данные продажи с ID {sale_id} обновлены.")
+    except Exception as e:
+        print(f"Ошибка при обновлении продажи: {e}")
+    finally:
+        cursor.close()
+        conn.close()
 
 
 def reset_sequence(table_name, id_column):
@@ -297,37 +392,46 @@ def show_all_data():
 ### Меню для работы с производителем ###
 def manufacturer_menu():
     while True:
-        print("\n1. Добавить нового производителя")
+        print("\nМеню производителей:")
+        print("1. Добавить нового производителя")
         print("2. Удалить производителя")
-        print("3. Вывести все записи о производителях")
-        print("4. Вернуться назад")
+        print("3. Обновить данные производителя")
+        print("4. Вывести всех производителей")
+        print("5. Вернуться назад")
         choice = input("Выберите действие: ")
 
         if choice == "1":
             name = input("Введите название производителя: ")
-            country = input("Введите страну: ")
+            country = input("Введите страну производителя: ")
             manufacturer_id = add_manufacturer(name, country)
             print(f"Производитель добавлен с ID: {manufacturer_id}")
         elif choice == "2":
             manufacturer_id = int(input("Введите ID производителя для удаления: "))
             delete_manufacturer(manufacturer_id)
-            print("Производитель и связанные данные удалены.")
         elif choice == "3":
-            manufacturers = get_all_manufacturers()
-            for manufacturer in manufacturers:
-                print(manufacturer)
+            manufacturer_id = int(input("Введите ID производителя для обновления: "))
+            new_name = input("Введите новое название производителя: ")
+            new_country = input("Введите новую страну производителя: ")
+            update_manufacturer(manufacturer_id, new_name, new_country)
         elif choice == "4":
+            manufacturers = get_all_manufacturers()
+            print("Производители:")
+            for row in manufacturers:
+                print(row)
+        elif choice == "5":
             break
         else:
-            print("Неверный выбор.")
+            print("Некорректный выбор. Попробуйте снова.")
 
 ### Меню для работы с Лекарствами ###
 def medicine_menu():
     while True:
-        print("\n1. Добавить новое лекарство")
+        print("\nМеню лекарств:")
+        print("1. Добавить новое лекарство")
         print("2. Удалить лекарство")
-        print("3. Вывести все записи о лекарствах")
-        print("4. Вернуться назад")
+        print("3. Обновить данные лекарства")
+        print("4. Вывести все лекарства")
+        print("5. Вернуться назад")
         choice = input("Выберите действие: ")
 
         if choice == "1":
@@ -340,23 +444,32 @@ def medicine_menu():
         elif choice == "2":
             medicine_id = int(input("Введите ID лекарства для удаления: "))
             delete_medicine(medicine_id)
-            print("Лекарство и связанные данные удалены.")
         elif choice == "3":
-            medicines = get_all_medicines()
-            for medicine in medicines:
-                print(medicine)
+            medicine_id = int(input("Введите ID лекарства для обновления: "))
+            new_name = input("Введите новое название лекарства: ")
+            new_form = input("Введите новую форму лекарства: ")
+            new_dosage = input("Введите новую дозировку: ")
+            new_manufacturer_id = int(input("Введите новый ID производителя: "))
+            update_medicine(medicine_id, new_name, new_form, new_dosage, new_manufacturer_id)
         elif choice == "4":
+            medicines = get_all_medicines()
+            print("Лекарства:")
+            for row in medicines:
+                print(row)
+        elif choice == "5":
             break
         else:
-            print("Неверный выбор.")
+            print("Некорректный выбор. Попробуйте снова.")
 
 ### Меню для работы с записями о применении ###
 def application_menu():
     while True:
-        print("\n1. Добавить новую запись о применении")
+        print("\nМеню записей о применении:")
+        print("1. Добавить запись о применении")
         print("2. Удалить запись о применении")
-        print("3. Вывести все записи о применении")
-        print("4. Вернуться назад")
+        print("3. Обновить данные записи о применении")
+        print("4. Вывести все записи о применении")
+        print("5. Вернуться назад")
         choice = input("Выберите действие: ")
 
         if choice == "1":
@@ -368,23 +481,31 @@ def application_menu():
         elif choice == "2":
             application_id = int(input("Введите ID записи о применении для удаления: "))
             delete_application(application_id)
-            print("Запись о применении удалена.")
         elif choice == "3":
-            applications = get_all_applications()
-            for application in applications:
-                print(application)
+            application_id = int(input("Введите ID записи о применении для обновления: "))
+            new_medicine_id = int(input("Введите новый ID лекарства: "))
+            new_disease = input("Введите новое заболевание: ")
+            new_usage_method = input("Введите новый способ применения: ")
+            update_application(application_id, new_medicine_id, new_disease, new_usage_method)
         elif choice == "4":
+            applications = get_all_applications()
+            print("Записи о применении:")
+            for row in applications:
+                print(row)
+        elif choice == "5":
             break
         else:
-            print("Неверный выбор.")
+            print("Некорректный выбор. Попробуйте снова.")
 
 ### Меню для работы с Аптеками ###
 def pharmacy_menu():
     while True:
-        print("\n1. Добавить новую аптеку")
+        print("\nМеню аптек:")
+        print("1. Добавить новую аптеку")
         print("2. Удалить аптеку")
-        print("3. Вывести все записи о аптеках")
-        print("4. Вернуться назад")
+        print("3. Обновить данные аптеки")
+        print("4. Вывести все аптеки")
+        print("5. Вернуться назад")
         choice = input("Выберите действие: ")
 
         if choice == "1":
@@ -395,24 +516,31 @@ def pharmacy_menu():
         elif choice == "2":
             pharmacy_id = int(input("Введите ID аптеки для удаления: "))
             delete_pharmacy(pharmacy_id)
-            print("Аптека и связанные данные удалены.")
         elif choice == "3":
-            pharmacies = get_all_pharmacies()
-            for pharmacy in pharmacies:
-                print(pharmacy)
+            pharmacy_id = int(input("Введите ID аптеки для обновления: "))
+            new_name = input("Введите новое название аптеки: ")
+            new_address = input("Введите новый адрес аптеки: ")
+            update_pharmacy(pharmacy_id, new_name, new_address)
         elif choice == "4":
+            pharmacies = get_all_pharmacies()
+            print("Аптеки:")
+            for row in pharmacies:
+                print(row)
+        elif choice == "5":
             break
         else:
-            print("Неверный выбор.")
+            print("Некорректный выбор. Попробуйте снова.")
 
 
 ### Меню для работы с Продажами ###
 def sale_menu():
     while True:
-        print("\n1. Добавить новую запись о продаже")
+        print("\nМеню продаж:")
+        print("1. Добавить запись о продаже")
         print("2. Удалить запись о продаже")
-        print("3. Вывести все записи о продажах")
-        print("4. Вернуться назад")
+        print("3. Обновить данные о продаже")
+        print("4. Вывести все продажи")
+        print("5. Вернуться назад")
         choice = input("Выберите действие: ")
 
         if choice == "1":
@@ -421,19 +549,26 @@ def sale_menu():
             sale_date = input("Введите дату продажи (YYYY-MM-DD): ")
             price = float(input("Введите цену: "))
             sale_id = add_sale(medicine_id, pharmacy_id, sale_date, price)
-            print(f"Запись о продаже добавлена с ID: {sale_id}")
+            print(f"Продажа добавлена с ID: {sale_id}")
         elif choice == "2":
-            sale_id = int(input("Введите ID записи о продаже для удаления: "))
+            sale_id = int(input("Введите ID продажи для удаления: "))
             delete_sale(sale_id)
-            print("Запись о продаже удалена.")
         elif choice == "3":
-            sales = get_all_sales()
-            for sale in sales:
-                print(sale)
+            sale_id = int(input("Введите ID продажи для обновления: "))
+            new_medicine_id = int(input("Введите новый ID лекарства: "))
+            new_pharmacy_id = int(input("Введите новый ID аптеки: "))
+            new_sale_date = input("Введите новую дату продажи (YYYY-MM-DD): ")
+            new_price = float(input("Введите новую цену: "))
+            update_sale(sale_id, new_medicine_id, new_pharmacy_id, new_sale_date, new_price)
         elif choice == "4":
+            sales = get_all_sales()
+            print("Продажи:")
+            for row in sales:
+                print(row)
+        elif choice == "5":
             break
         else:
-            print("Неверный выбор.")
+            print("Некорректный выбор. Попробуйте снова.")
 
 
 def main_menu():
