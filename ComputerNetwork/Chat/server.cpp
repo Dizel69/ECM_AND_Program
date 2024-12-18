@@ -1,14 +1,14 @@
 #include <iostream>
-#include <thread>
 #include <vector>
 #include <string>
-#include <mutex>
 #include <cstring>
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <csignal>
-#include <atomic> // Для std::atomic
-#include <algorithm> // Для std::remove
+#include <atomic>
+#include <algorithm>
+#include <sys/select.h>
+#include <fcntl.h>
 
 // Константы
 const int PORT = 8000;
@@ -16,41 +16,39 @@ const int BUFFER_SIZE = 1024;
 
 // Глобальные переменные
 std::vector<int> client_sockets;  // Список сокетов подключённых клиентов
-std::mutex client_mutex;          // Мьютекс для потокобезопасного доступа к клиентам
 std::atomic<bool> server_running(true); // Флаг работы сервера
 
-// Функция для обработки сообщений от клиента
-void HandleClient(int client_socket) {
+// Обработка сообщения от клиента
+void HandleClientMessage(int client_socket) {
     char buffer[BUFFER_SIZE];
-    while (server_running) {
-        memset(buffer, 0, BUFFER_SIZE);
-        int bytes_received = recv(client_socket, buffer, BUFFER_SIZE - 1, 0);
-        
-        if (bytes_received <= 0) { // Ошибка или клиент закрыл соединение
-            {
-                std::lock_guard<std::mutex> lock(client_mutex);
-                // Удаляем сокет клиента из списка
-                client_sockets.erase(
-                    std::remove(client_sockets.begin(), client_sockets.end(), client_socket),
-                    client_sockets.end()
-                );
-            }
+    memset(buffer, 0, BUFFER_SIZE);
+
+    int bytes_received = recv(client_socket, buffer, BUFFER_SIZE - 1, 0);
+
+    if (bytes_received == 0) { // Клиент закрыл соединение
+        std::cout << "Клиент отключился. Сокет: " << client_socket << std::endl;
+        close(client_socket);
+        client_sockets.erase(std::remove(client_sockets.begin(), client_sockets.end(), client_socket), client_sockets.end());
+        return;
+    }
+
+    if (bytes_received < 0) { // Ошибка чтения
+        if (errno != EAGAIN && errno != EWOULDBLOCK) {
+            std::cerr << "Ошибка чтения данных с клиента: " << strerror(errno) << std::endl;
             close(client_socket);
-            std::cout << "Клиент отключился. Сокет: " << client_socket << std::endl;
-            break;
+            client_sockets.erase(std::remove(client_sockets.begin(), client_sockets.end(), client_socket), client_sockets.end());
         }
+        return;
+    }
 
-        std::string message(buffer, bytes_received);
-        std::cout << "Получено сообщение: " << message << std::endl;
+    // Если получили сообщение
+    std::string message(buffer, bytes_received);
+    std::cout << "Получено сообщение от клиента " << client_socket << ": " << message << std::endl;
 
-        // Рассылка сообщения всем клиентам
-        {
-            std::lock_guard<std::mutex> lock(client_mutex);
-            for (int sock : client_sockets) {
-                if (sock != client_socket) {
-                    send(sock, message.c_str(), message.size(), 0);
-                }
-            }
+    // Рассылаем сообщение всем клиентам, кроме отправителя
+    for (int sock : client_sockets) {
+        if (sock != client_socket) {
+            send(sock, message.c_str(), message.size(), 0);
         }
     }
 }
@@ -61,13 +59,10 @@ void SignalHandler(int signal) {
     server_running = false;
 
     // Закрываем все клиентские соединения
-    {
-        std::lock_guard<std::mutex> lock(client_mutex);
-        for (int sock : client_sockets) {
-            close(sock);
-        }
-        client_sockets.clear();
+    for (int sock : client_sockets) {
+        close(sock);
     }
+    client_sockets.clear();
 
     std::exit(0);
 }
@@ -82,6 +77,9 @@ int main() {
         std::cerr << "Ошибка создания сокета" << std::endl;
         return 1;
     }
+
+    // Настроим серверный сокет как неблокирующий
+    fcntl(server_socket, F_SETFL, O_NONBLOCK);
 
     // Настраиваем адрес и порт
     sockaddr_in server_addr;
@@ -107,29 +105,49 @@ int main() {
 
     // Главный цикл сервера
     while (server_running) {
-        sockaddr_in client_addr;
-        socklen_t client_size = sizeof(client_addr);
+        fd_set read_fds;
+        FD_ZERO(&read_fds);
+        FD_SET(server_socket, &read_fds);
 
-        // Принимаем подключение от клиента
-        int client_socket = accept(server_socket, (sockaddr*)&client_addr, &client_size);
-        if (client_socket == -1) {
-            if (server_running) {
-                std::cerr << "Ошибка принятия соединения" << std::endl;
+        int max_fd = server_socket;
+        for (int client_sock : client_sockets) {
+            FD_SET(client_sock, &read_fds);
+            if (client_sock > max_fd) {
+                max_fd = client_sock;
             }
+        }
+
+        // Ожидаем активности на сокетах
+        int activity = select(max_fd + 1, &read_fds, nullptr, nullptr, nullptr);
+        if (activity < 0) {
+            std::cerr << "Ошибка select: " << strerror(errno) << std::endl;
             continue;
         }
+        // Проверяем, есть ли активность на серверном сокете (новые подключения)
+        if (FD_ISSET(server_socket, &read_fds)) {
+            sockaddr_in client_addr;
+            socklen_t client_size = sizeof(client_addr);
+            int client_socket = accept(server_socket, (sockaddr*)&client_addr, &client_size);
+            if (client_socket == -1) {
+                std::cerr << "Ошибка принятия соединения: " << strerror(errno) << std::endl;
+                continue;
+            }
 
-        {
-            // Добавляем сокет клиента в общий список
-            std::lock_guard<std::mutex> lock(client_mutex);
+            // Делаем клиентский сокет нон-блокинг
+            fcntl(client_socket, F_SETFL, O_NONBLOCK);
+
+            // Добавляем новый сокет в список клиентов
             client_sockets.push_back(client_socket);
+
+            std::cout << "Подключён новый клиент. Сокет: " << client_socket << std::endl;
         }
 
-        std::cout << "Подключён новый клиент. Сокет: " << client_socket << std::endl;
-
-        // Запускаем поток для обработки клиента
-        std::thread client_thread(HandleClient, client_socket);
-        client_thread.detach(); // Отделяем поток, чтобы он работал независимо
+        // Проверяем активность на каждом клиентском сокете
+        for (int client_socket : client_sockets) {
+            if (FD_ISSET(client_socket, &read_fds)) {
+                HandleClientMessage(client_socket);
+            }
+        }
     }
 
     // Закрываем серверный сокет
