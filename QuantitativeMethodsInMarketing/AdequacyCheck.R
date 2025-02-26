@@ -24,6 +24,8 @@ correct <- ifelse((nruns - mean_runs) > 0, -0.5, 0.5)
 z <- (nruns - mean_runs + correct) / sigma
 z_critical <- qnorm(0.975)
 hypothesis1 <- ifelse((z_critical - z) > 0, "H0", "H1")
+p_value <- 2 * (1 - pnorm(abs(z)))
+
 
 # Вывод результатов теста 1
 cat("----- 1 Test: Критерий пиков и впадин -----\n")
@@ -33,6 +35,7 @@ cat("Стандартное отклонение (sigma):", sigma, "\n")
 cat("Поправка (correct):", correct, "\n")
 cat("z-значение:", z, "\n")
 cat("Критическое значение (zCritical):", z_critical, "\n")
+cat("p-value", p_value,"\n")
 cat("Вывод по гипотезе:", hypothesis1, "\n\n")
 
 # ======================================================================
@@ -49,6 +52,7 @@ correct2 <- ifelse((nruns2 - mean_runs2) > 0, -0.5, 0.5)
 z2 <- (nruns2 - mean_runs2 + correct2) / sigma2
 zCritical2 <- qnorm(0.975)
 hypothesis2 <- ifelse((zCritical2 - z2) > 0, "H0", "H1")
+p_valueMed <- 2 * (1 - pnorm(abs(z2)))
 
 # Вывод результатов теста 2
 cat("----- 2 Test: Медианный критерий -----\n")
@@ -62,6 +66,7 @@ cat("Стандартное отклонение (sigma):", sigma2, "\n")
 cat("Поправка (correct):", correct2, "\n")
 cat("z-значение:", z2, "\n")
 cat("Критическое значение (zCritical):", zCritical2, "\n")
+cat("p-value", p_valueMed,"\n")
 cat("Вывод по гипотезе:", hypothesis2, "\n\n")
 
 # ======================================================================
@@ -77,9 +82,12 @@ cat("Вывод по гипотезе:", hypothesis3, "\n\n")
 # ======================================================================
 # 4 Test: t-тест для проверки постоянного среднего (встроенная функция)
 # ======================================================================
+half <- floor(n / 2)
+group1 <- x[1:half]
+group2 <- x[(half + 1):n]
 mu0 <- 0  # Гипотетическое значение среднего
 conf_level <- 0.99
-t_test_result <- t.test(x, mu = mu0, alternative = "two.sided", conf.level = conf_level)
+t_test_result <- t.test(group1, group2, alternative = "two.sided", conf.level = conf_level)
 hypothesis4 <- ifelse(t_test_result$p.value > 0.05, "H0", "H1")
 cat("----- 4 Test: t-тест для постоянного среднего -----\n")
 cat("t-статистика:", t_test_result$statistic, "\n")
@@ -127,3 +135,10 @@ cat("| 1 Test | 2 Test | 3 Test | 4 Test | 5 Test |\n")
 cat("----------------------------------------------------------\n")
 cat(sprintf("|   %3s   |   %3s   |   %3s   |   %3s   |   %3s   |\n", flag1, flag2, flag3, flag4, flag5))
 cat("----------------------------------------------------------\n")
+
+
+
+
+#ToDo
+#сделать удаление значений, которые совпадают с медианой
+#сделать удаление объектов, которые повторяются
