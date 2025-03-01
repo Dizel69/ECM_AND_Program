@@ -20,4 +20,5 @@ cat("Остатки лучшей ARIMA модели:\n")
 print(residuals)
 
 # 3. Проверка адекватности модели: выполнение 5 тестов на остатках
-run_adequacy_tests(residuals)
+run_adequacy_tests(residuals$residuals)
+
