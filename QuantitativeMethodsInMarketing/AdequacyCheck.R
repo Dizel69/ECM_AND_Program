@@ -2,8 +2,8 @@ run_adequacy_tests <- function(x) {
   # Приводим входной вектор к числовому типу
   x <- as.numeric(x)
   
-  # Предварительная обработка: удаляем соседние повторяющиеся значения
-  # Если два одинаковых числа стоят подряд, оставляем только первое
+  # Предварительная обработка: удаляем соседние повторяющиеся значения,
+  # если два одинаковых числа стоят подряд, оставляем только первое
   if (length(x) > 1) {
     x <- x[c(TRUE, diff(x) != 0)]
   }
@@ -13,6 +13,9 @@ run_adequacy_tests <- function(x) {
        xlab = "Индекс", ylab = "Значение",
        main = "График числового ряда (без соседних дубликатов)")
   grid()
+  
+  results <- list()
+  ok_flags <- c()  # вектор для результатов тестов ("OK" или "*")
   
   # ------------------------------------------------------------------
   # 1 Test: Критерий пиков и впадин (реализация вручную)
@@ -38,6 +41,9 @@ run_adequacy_tests <- function(x) {
   cat("Критическое значение (zCritical):", z_critical, "\n")
   cat("p-value:", p_value1, "\n")
   cat("Вывод по гипотезе:", hypothesis1, "\n\n")
+  results$test1 <- list(nruns=nruns, mean_runs=mean_runs, sigma=sigma, correct=correct, z=z, 
+                          z_critical=z_critical, p_value=p_value1, hypothesis=hypothesis1)
+  ok_flags[1] <- ifelse(hypothesis1=="H0", "OK", "*")
   
   # ------------------------------------------------------------------
   # 2 Test: Медианный критерий (реализация вручную)
@@ -81,6 +87,10 @@ run_adequacy_tests <- function(x) {
   cat("Критическое значение (zCritical):", zCritical2, "\n")
   cat("p-value:", p_value2, "\n")
   cat("Вывод по гипотезе:", hypothesis2, "\n\n")
+  results$test2 <- list(median=med, n=n2, n0=n0, n1=n1, nruns=nruns2, mean_runs=mean_runs2,
+                          sigma=sigma2, correct=correct2, z=z2, zCritical=zCritical2, p_value=p_value2,
+                          hypothesis=hypothesis2)
+  ok_flags[2] <- ifelse(hypothesis2=="H0", "OK", "*")
   
   # ------------------------------------------------------------------
   # 3 Test: Box-Pierce тест (встроенная функция)
@@ -91,6 +101,8 @@ run_adequacy_tests <- function(x) {
   cat("Box-Pierce Test Statistic:", box_test_result$statistic, "\n")
   cat("p-value:", box_test_result$p.value, "\n")
   cat("Вывод по гипотезе:", hypothesis3, "\n\n")
+  results$test3 <- list(statistic=box_test_result$statistic, p_value=box_test_result$p.value, hypothesis=hypothesis3)
+  ok_flags[3] <- ifelse(hypothesis3=="H0", "OK", "*")
   
   # ------------------------------------------------------------------
   # 4 Test: t-тест для проверки постоянного среднего (встроенная функция)
@@ -106,6 +118,9 @@ run_adequacy_tests <- function(x) {
   cat("p-value:", t_test_result$p.value, "\n")
   cat("Доверительный интервал:", paste("[", paste(round(t_test_result$conf.int, 3), collapse = ", "), "]"), "\n")
   cat("Вывод по гипотезе:", hypothesis4, "\n\n")
+  results$test4 <- list(t_statistic=t_test_result$statistic, p_value=t_test_result$p.value, 
+                          conf_int=t_test_result$conf.int, hypothesis=hypothesis4)
+  ok_flags[4] <- ifelse(hypothesis4=="H0", "OK", "*")
   
   # ------------------------------------------------------------------
   # 5 Test: F-тест Фишера для равенства дисперсий (встроенная функция)
@@ -129,19 +144,27 @@ run_adequacy_tests <- function(x) {
   cat("p-value:", var_test_result$p.value, "\n")
   cat("Доверительный интервал отношения дисперсий:", paste("[", paste(round(var_test_result$conf.int, 3), collapse = ", "), "]"), "\n")
   cat("Вывод по гипотезе:", hypothesis5, "\n\n")
+  results$test5 <- list(F_statistic=var_test_result$statistic, p_value=var_test_result$p.value,
+                          conf_int=var_test_result$conf.int, hypothesis=hypothesis5)
+  ok_flags[5] <- ifelse(hypothesis5=="H0", "OK", "*")
   
   # ------------------------------------------------------------------
   # Итоговая сводная таблица результатов
   # ------------------------------------------------------------------
-  flag1 <- ifelse(hypothesis1 == "H0", "OK", "*")
-  flag2 <- ifelse(hypothesis2 == "H0", "OK", "*")
-  flag3 <- ifelse(hypothesis3 == "H0", "OK", "*")
-  flag4 <- ifelse(hypothesis4 == "H0", "OK", "*")
-  flag5 <- ifelse(hypothesis5 == "H0", "OK", "*")
+  overall_ok <- sum(ok_flags == "OK")
+  overall <- if (overall_ok >= 4) "Модель адекватна" else "Модель неадекватна"
   
   cat("----------------------------------------------------------\n")
   cat("| 1 Test | 2 Test | 3 Test | 4 Test | 5 Test |\n")
   cat("----------------------------------------------------------\n")
-  cat(sprintf("|   %3s   |   %3s   |   %3s   |   %3s   |   %3s   |\n", flag1, flag2, flag3, flag4, flag5))
+  cat(sprintf("|   %3s   |   %3s   |   %3s   |   %3s   |   %3s   |\n", 
+              ok_flags[1], ok_flags[2], ok_flags[3], ok_flags[4], ok_flags[5]))
   cat("----------------------------------------------------------\n")
+  cat("Общий вывод:", overall, "\n")
+  
+  results$overall <- overall
+  results$summary <- sprintf("|   %3s   |   %3s   |   %3s   |   %3s   |   %3s   | => %s", 
+                             ok_flags[1], ok_flags[2], ok_flags[3], ok_flags[4], ok_flags[5], overall)
+  
+  return(results)
 }

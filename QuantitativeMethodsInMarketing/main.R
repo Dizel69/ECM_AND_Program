@@ -14,11 +14,36 @@ if (is.null(x)) {
 }
 x <- as.numeric(x)  # Преобразуем в числовой вектор
 
-# 2. Подбор лучшей ARIMA модели и получение остатков
-residuals <- select_arima(x)
-cat("Остатки лучшей ARIMA модели:\n")
-print(residuals)
+# Предварительная обработка: удаляем соседние повторяющиеся значения
+x <- x[c(TRUE, diff(x) != 0)]
 
-# 3. Проверка адекватности модели: выполнение 5 тестов на остатках
-run_adequacy_tests(residuals$residuals)
+# Максимальное число попыток подбора модели
+max_attempts <- 10
+attempt <- 1
+adequate_model_found <- FALSE
+results <- NULL
 
+while (!adequate_model_found && attempt <= max_attempts) {
+  cat("Попытка модели №", attempt, "\n")
+  # Подбор ARIMA модели и получение остатков
+  results <- select_arima(x)
+  # Проверка адекватности модели: выполнение 5 тестов на остатках.
+  # Функция run_adequacy_tests возвращает список с элементом overall,
+  # равным "Модель адекватна", если в тестах H0 получено хотя бы 4 раза.
+  adequacy <- run_adequacy_tests(results$residuals)
+  
+  if (adequacy$overall == "Модель адекватна") {
+    adequate_model_found <- TRUE
+    cat("Адекватная модель найдена на попытке №", attempt, "\n")
+  } else {
+    cat("Модель неадекватна на попытке №", attempt, ". Переходим к поиску новой модели...\n\n")
+    attempt <- attempt + 1
+  }
+}
+
+if (!adequate_model_found) {
+  cat("Не удалось найти адекватную модель за", max_attempts, "попыток.\n")
+} else {
+  cat("Остатки адекватной модели:\n")
+  print(results$residuals)
+}
