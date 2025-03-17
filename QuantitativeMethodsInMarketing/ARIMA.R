@@ -63,15 +63,3 @@ select_arima <- function(x_t, p_range = 0:3, d_range = 0:1, q_range = 0:3) {
               coefficients = coef,
               residuals = res))
 }
-
-# Пример вызова функции select_arima():
-# Временной ряд можно считать, например, так:
-# data <- read.table("data.csv", header = TRUE, sep = "\n", dec = ",", row.names = NULL)
-# x <- as.numeric(data$Value)
-# Здесь можно добавить предварительную обработку, например, удаление соседних дубликатов:
-# x <- x[c(TRUE, diff(x) != 0)]
-#
-# Затем вызываем функцию:
-# results <- select_arima(x)
-#
-# Остатки выбранной модели будут доступны через results$residuals
