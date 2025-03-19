@@ -1,65 +1,77 @@
-select_arima <- function(x_t, p_range = 0:3, d_range = 0:1, q_range = 0:3) {
-  best_aic <- Inf
+library(forecast)
+library(tseries)
+library(seasonal)
+
+# Функция для вычисления MAPE
+calculate_mape <- function(actual, predicted) {
+  return(mean(abs((actual - predicted) / actual)) * 100)
+}
+
+# Функция для подбора лучшей модели ARIMA с учетом сезонности
+select_arima <- function(x_t) {
+  best_mape <- Inf
   best_model <- NULL
-  best_order <- c(NA, NA, NA)
+  best_seasonality <- NULL
+  best_order <- NULL
+
+  # Проверяем сезонность с помощью тестов
+  seasonality_tests <- list(
+    "Friedman" = friedmanTest(x_t),
+    "Kruskal-Wallis" = kruskalTest(x_t),
+    "Welch" = welchTest(x_t)
+  )
   
-  # Перебор всех комбинаций параметров ARIMA
-  for (d in d_range) {
-    for (p in p_range) {
-      for (q in q_range) {
-        fit <- tryCatch({
-          arima(x_t, order = c(p, d, q))
-        }, error = function(e) { NULL })
-        
-        if (!is.null(fit)) {
-          current_aic <- AIC(fit)
-          if (current_aic < best_aic) {
-            best_aic <- current_aic
-            best_model <- fit
-            best_order <- c(p, d, q)
+  # Собираем результаты тестов в таблицу
+  seasonality_results <- data.frame(Test = names(seasonality_tests),
+                                    P_Value = sapply(seasonality_tests, function(test) test$p.value))
+  
+  print("Результаты тестов на сезонность:")
+  print(seasonality_results)
+  
+  # Если хотя бы один тест даёт p-value < 0.05, считаем, что сезонность есть
+  has_seasonality <- any(seasonality_results$P_Value < 0.05)
+  
+  # Определяем возможные сезонные параметры
+  seasonal_periods <- if (has_seasonality) 2:12 else c(1)
+
+  # Подбор ARIMA-модели с различными параметрами
+  for (seasonality in seasonal_periods) {
+    for (d in 0:1) {
+      for (p in 0:3) {
+        for (q in 0:3) {
+          for (D in 0:1) {
+            for (P in 0:3) {
+              for (Q in 0:3) {
+                order <- c(p, d, q)
+                seasonal <- c(P, D, Q, seasonality)
+                
+                fit <- tryCatch({
+                  auto.arima(data, d=d, D=D, max.p=3, max.q=3, max.P=3, max.Q=3, seasonal=TRUE, stepwise=FALSE, approximation=FALSE, trace=FALSE)
+                }, error = function(e) NULL)
+                
+                if (!is.null(fit)) {
+                  fitted_values <- fitted(fit)
+                  mape <- calculate_mape(data, fitted_values)
+                  
+                  if (mape < best_mape) {
+                    best_mape <- mape
+                    best_model <- fit
+                    best_seasonality <- seasonality
+                    best_order <- list(order = order, seasonal = seasonal)
+                  }
+                }
+              }
+            }
           }
         }
       }
     }
   }
   
-  # Вывод информации о лучшей модели
-  cat("Лучшие параметры модели ARIMA: order = (", best_order[1], ", ", best_order[2], ", ", best_order[3], ")\n", sep = "")
-  cat("AIC лучшей модели:", best_aic, "\n\n")
-  cat("Результаты модели:\n")
-  print(best_model)
+  print(paste("Лучшая сезонность:", best_seasonality))
+  print(paste("Лучшее MAPE:", best_mape))
+  print("Лучшие параметры модели:")
+  print(best_order)
   
-  # Извлечение коэффициентов модели
-  coef <- best_model$coef
-  cat("\nКоэффициенты модели:\n")
-  print(coef)
-  
-  # Если доступна матрица дисперсий коэффициентов, выводим стандартные ошибки, t-статистики и p-value
-  if (!is.null(best_model$var.coef)) {
-    se <- sqrt(diag(best_model$var.coef))
-    cat("\nСтандартные ошибки коэффициентов:\n")
-    print(se)
-    
-    t_val <- abs(coef / se)
-    cat("\nТ-статистики коэффициентов:\n")
-    print(t_val)
-    
-    # Степени свободы: число наблюдений минус число коэффициентов
-    df <- length(x_t) - length(coef)
-    p_val <- 2 * (1 - pt(t_val, df))
-    cat("\nP-value для коэффициентов:\n")
-    print(p_val)
-  }
-  
-  # Извлечение остатков лучшей модели
-  res <- best_model$residuals
-  cat("\nОстатки лучшей модели:\n")
-  print(res)
-  
-  # Возвращаем список с результатами
-  return(list(best_model = best_model,
-              best_order = best_order,
-              best_aic = best_aic,
-              coefficients = coef,
-              residuals = res))
+  return(best_model)
 }
