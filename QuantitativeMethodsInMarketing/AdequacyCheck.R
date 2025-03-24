@@ -9,11 +9,13 @@ run_adequacy_tests <- function(x) {
   }
   
   # Построение базового графика временного ряда
+
+    # Построение базового графика временного ряда
   plot(x, type = "o", col = "blue", pch = 19, lwd = 2,
        xlab = "Индекс", ylab = "Значение",
        main = "График числового ряда (без соседних дубликатов)")
+       
   grid()
-  
   results <- list()
   ok_flags <- c()  # вектор для результатов тестов ("OK" или "*")
   
@@ -66,13 +68,6 @@ run_adequacy_tests <- function(x) {
   zCritical2 <- qnorm(0.975)
   hypothesis2 <- ifelse((zCritical2 - z2) > 0, "H0", "H1")
   p_value2 <- 2 * (1 - pnorm(abs(z2)))
-  
-  # График с медианой (на основе исходного ряда)
-  plot(x, type = "o", col = "blue", pch = 19, lwd = 2,
-       xlab = "Индекс", ylab = "Значение",
-       main = "График числового ряда с медианой")
-  abline(h = med, col = "red", lwd = 2, lty = 2)
-  text(1, med, labels = paste("Медиана =", round(med, 2)), pos = 3, col = "red")
   
   cat("----- 2 Test: Медианный критерий -----\n")
   cat("Медиана ряда:", med, "\n")
@@ -128,14 +123,6 @@ run_adequacy_tests <- function(x) {
   half <- floor(n / 2)
   group1 <- x[1:half]
   group2 <- x[(half + 1):n]
-  
-  # График для визуализации разделения на группы
-  plot(x, type = "o", col = "black", pch = 19, lwd = 2,
-       xlab = "Индекс", ylab = "Значение", main = "Временной ряд, разделённый на две группы")
-  grid()
-  points(1:half, group1, col = "blue", pch = 19)
-  points((half + 1):n, group2, col = "red", pch = 19)
-  legend("topright", legend = c("Группа 1", "Группа 2"), col = c("blue", "red"), pch = 19)
   
   var_test_result <- var.test(group1, group2, alternative = "two.sided", conf.level = 0.95)
   hypothesis5 <- ifelse(var_test_result$p.value > 0.05, "H0", "H1")

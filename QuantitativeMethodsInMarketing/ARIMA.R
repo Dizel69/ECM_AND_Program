@@ -1,64 +1,45 @@
+# ARIMA.R
 library(forecast)
-library(tseries)
-library(seasonal)
 
-# Функция для вычисления MAPE
-calculate_mape <- function(actual, predicted) {
-  return(mean(abs((actual - predicted) / actual)) * 100)
-}
-
-# Функция для подбора лучшей модели ARIMA с учетом сезонности
-select_arima <- function(x_t) {
-  best_mape <- Inf
+select_arima <- function(x_t, 
+                         p_range = 0:3, d_range = 0:1, q_range = 0:3, 
+                         P_range = 0:3, D_range = 0:1, Q_range = 0:3) {
+  best_aic <- Inf
   best_model <- NULL
-  best_seasonality <- NULL
-  best_order <- NULL
-
-  # Проверяем сезонность с помощью тестов
-  seasonality_tests <- list(
-    "Friedman" = friedmanTest(x_t),
-    "Kruskal-Wallis" = kruskalTest(x_t),
-    "Welch" = welchTest(x_t)
-  )
+  best_order <- c(NA, NA, NA)
+  best_seasonal_order <- c(NA, NA, NA, NA)
   
-  # Собираем результаты тестов в таблицу
-  seasonality_results <- data.frame(Test = names(seasonality_tests),
-                                    P_Value = sapply(seasonality_tests, function(test) test$p.value))
+  # Определяем сезонность с помощью findfrequency()
+  T_val <- findfrequency(ts(x_t))
+  cat(sprintf("Определённая сезонность (T): %d\n", T_val))
   
-  print("Результаты тестов на сезонность:")
-  print(seasonality_results)
+  total_iterations <- length(p_range) * length(d_range) * length(q_range) *
+                      length(P_range) * length(D_range) * length(Q_range)
+  iteration <- 0
   
-  # Если хотя бы один тест даёт p-value < 0.05, считаем, что сезонность есть
-  has_seasonality <- any(seasonality_results$P_Value < 0.05)
-  
-  # Определяем возможные сезонные параметры
-  seasonal_periods <- if (has_seasonality) 2:12 else c(1)
-
-  # Подбор ARIMA-модели с различными параметрами
-  for (seasonality in seasonal_periods) {
-    for (d in 0:1) {
-      for (p in 0:3) {
-        for (q in 0:3) {
-          for (D in 0:1) {
-            for (P in 0:3) {
-              for (Q in 0:3) {
-                order <- c(p, d, q)
-                seasonal <- c(P, D, Q, seasonality)
-                
-                fit <- tryCatch({
-                  auto.arima(data, d=d, D=D, max.p=3, max.q=3, max.P=3, max.Q=3, seasonal=TRUE, stepwise=FALSE, approximation=FALSE, trace=FALSE)
-                }, error = function(e) NULL)
-                
-                if (!is.null(fit)) {
-                  fitted_values <- fitted(fit)
-                  mape <- calculate_mape(data, fitted_values)
-                  
-                  if (mape < best_mape) {
-                    best_mape <- mape
-                    best_model <- fit
-                    best_seasonality <- seasonality
-                    best_order <- list(order = order, seasonal = seasonal)
-                  }
+  for (D in D_range) {
+    for (P in P_range) {
+      for (Q in Q_range) {
+        for (d in d_range) {
+          for (p in p_range) {
+            for (q in q_range) {
+              iteration <- iteration + 1
+              cat(sprintf("Итерация %d из %d: (p, d, q) = (%d, %d, %d), (P, D, Q, T) = (%d, %d, %d, %d)\n", 
+                          iteration, total_iterations, p, d, q, P, D, Q, T_val))
+              
+              fit <- tryCatch({
+                Arima(ts(x_t, frequency = T_val), 
+                      order = c(p, d, q), 
+                      seasonal = list(order = c(P, D, Q), period = T_val))
+              }, error = function(e) { NULL })
+              
+              if (!is.null(fit)) {
+                current_aic <- AIC(fit)
+                if (current_aic < best_aic) {
+                  best_aic <- current_aic
+                  best_model <- fit
+                  best_order <- c(p, d, q)
+                  best_seasonal_order <- c(P, D, Q, T_val)
                 }
               }
             }
@@ -68,10 +49,24 @@ select_arima <- function(x_t) {
     }
   }
   
-  print(paste("Лучшая сезонность:", best_seasonality))
-  print(paste("Лучшее MAPE:", best_mape))
-  print("Лучшие параметры модели:")
-  print(best_order)
+  if (is.null(best_model)) {
+    stop("Ошибка: Не удалось подобрать адекватную модель ARIMA.")
+  }
   
-  return(best_model)
+  cat("\nЛучшие параметры модели ARIMA: ")
+  cat(sprintf("order = (%d, %d, %d), seasonal = (%d, %d, %d, %d)\n", 
+              best_order[1], best_order[2], best_order[3], 
+              best_seasonal_order[1], best_seasonal_order[2], best_seasonal_order[3], best_seasonal_order[4]))
+  cat("AIC лучшей модели:", best_aic, "\n\n")
+  cat("Результаты модели:\n")
+  print(best_model)
+  
+  # Извлекаем остатки модели через residuals()
+  res <- residuals(best_model)
+  cat("\nОстатки лучшей модели:\n")
+  print(res)
+  
+  return(list(best_model = best_model, best_order = best_order, 
+              best_seasonal_order = best_seasonal_order, best_aic = best_aic,
+              residuals = res))
 }
