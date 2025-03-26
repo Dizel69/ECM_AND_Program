@@ -1,27 +1,14 @@
 run_adequacy_tests <- function(x) {
-  # Приводим входной вектор к числовому типу
+  # Приводим входной вектор к числовому типу и удаляем соседние дубликаты
   x <- as.numeric(x)
-  
-  # Предварительная обработка: удаляем соседние повторяющиеся значения,
-  # если два одинаковых числа стоят подряд, оставляем только первое
   if (length(x) > 1) {
     x <- x[c(TRUE, diff(x) != 0)]
   }
   
-  # Построение базового графика временного ряда
-
-    # Построение базового графика временного ряда
-  plot(x, type = "o", col = "blue", pch = 19, lwd = 2,
-       xlab = "Индекс", ylab = "Значение",
-       main = "График числового ряда (без соседних дубликатов)")
-       
-  grid()
   results <- list()
-  ok_flags <- c()  # вектор для результатов тестов ("OK" или "*")
+  ok_flags <- c()
   
-  # ------------------------------------------------------------------
-  # 1 Test: Критерий пиков и впадин (реализация вручную)
-  # ------------------------------------------------------------------
+  ## Тест 1: Критерий пиков и впадин
   diffs <- diff(x)
   signs <- ifelse(diffs > 0, "+", "-")
   nruns <- 1 + sum(signs[-1] != signs[-length(signs)])
@@ -34,24 +21,13 @@ run_adequacy_tests <- function(x) {
   hypothesis1 <- ifelse((z_critical - z) > 0, "H0", "H1")
   p_value1 <- 2 * (1 - pnorm(abs(z)))
   
-  cat("----- 1 Test: Критерий пиков и впадин -----\n")
-  cat("Число серий (nruns):", nruns, "\n")
-  cat("Теоретическое среднее серий:", mean_runs, "\n")
-  cat("Стандартное отклонение (sigma):", sigma, "\n")
-  cat("Поправка (correct):", correct, "\n")
-  cat("z-значение:", z, "\n")
-  cat("Критическое значение (zCritical):", z_critical, "\n")
-  cat("p-value:", p_value1, "\n")
-  cat("Вывод по гипотезе:", hypothesis1, "\n\n")
-  results$test1 <- list(nruns=nruns, mean_runs=mean_runs, sigma=sigma, correct=correct, z=z, 
-                          z_critical=z_critical, p_value=p_value1, hypothesis=hypothesis1)
-  ok_flags[1] <- ifelse(hypothesis1=="H0", "OK", "*")
+  cat("----- Тест 1: Критерий пиков и впадин -----\n")
+  cat("nruns:", nruns, "mean_runs:", mean_runs, "sigma:", sigma, "z:", z, "\n")
+  results$test1 <- list(p_value = p_value1, hypothesis = hypothesis1)
+  ok_flags[1] <- ifelse(hypothesis1 == "H0", "OK", "*")
   
-  # ------------------------------------------------------------------
-  # 2 Test: Медианный критерий (реализация вручную)
-  # ------------------------------------------------------------------
+  ## Тест 2: Медианный критерий
   med <- median(x)
-  # Исключаем значения, равные медиане
   x2 <- x[x != med]
   if (length(x2) == 0) {
     stop("Все значения равны медиане. Невозможно выполнить медианный критерий.")
@@ -69,89 +45,48 @@ run_adequacy_tests <- function(x) {
   hypothesis2 <- ifelse((zCritical2 - z2) > 0, "H0", "H1")
   p_value2 <- 2 * (1 - pnorm(abs(z2)))
   
-  cat("----- 2 Test: Медианный критерий -----\n")
-  cat("Медиана ряда:", med, "\n")
-  cat("Число наблюдений (n) (без медианных значений):", n2, "\n")
-  cat("Количество чисел выше медианы (n0):", n0, "\n")
-  cat("Количество чисел ниже медианы (n1):", n1, "\n")
-  cat("Число серий (nruns):", nruns2, "\n")
-  cat("Теоретическое среднее серий:", mean_runs2, "\n")
-  cat("Стандартное отклонение (sigma):", sigma2, "\n")
-  cat("Поправка (correct):", correct2, "\n")
-  cat("z-значение:", z2, "\n")
-  cat("Критическое значение (zCritical):", zCritical2, "\n")
-  cat("p-value:", p_value2, "\n")
-  cat("Вывод по гипотезе:", hypothesis2, "\n\n")
-  results$test2 <- list(median=med, n=n2, n0=n0, n1=n1, nruns=nruns2, mean_runs=mean_runs2,
-                          sigma=sigma2, correct=correct2, z=z2, zCritical=zCritical2, p_value=p_value2,
-                          hypothesis=hypothesis2)
-  ok_flags[2] <- ifelse(hypothesis2=="H0", "OK", "*")
+  cat("----- Тест 2: Медианный критерий -----\n")
+  results$test2 <- list(p_value = p_value2, hypothesis = hypothesis2)
+  ok_flags[2] <- ifelse(hypothesis2 == "H0", "OK", "*")
   
-  # ------------------------------------------------------------------
-  # 3 Test: Box-Pierce тест (встроенная функция)
-  # ------------------------------------------------------------------
-  box_test_result <- Box.test(x, lag = 10, type = "Box-Pierce")
-  hypothesis3 <- ifelse(box_test_result$p.value > 0.05, "H0", "H1")
-  cat("----- 3 Test: Box-Pierce -----\n")
-  cat("Box-Pierce Test Statistic:", box_test_result$statistic, "\n")
-  cat("p-value:", box_test_result$p.value, "\n")
-  cat("Вывод по гипотезе:", hypothesis3, "\n\n")
-  results$test3 <- list(statistic=box_test_result$statistic, p_value=box_test_result$p.value, hypothesis=hypothesis3)
-  ok_flags[3] <- ifelse(hypothesis3=="H0", "OK", "*")
+  ## Тест 3: Box-Pierce тест
+  box_test <- Box.test(x, lag = 10, type = "Box-Pierce")
+  hypothesis3 <- ifelse(box_test$p.value > 0.05, "H0", "H1")
+  cat("----- Тест 3: Box-Pierce -----\n")
+  results$test3 <- list(p_value = box_test$p.value, hypothesis = hypothesis3)
+  ok_flags[3] <- ifelse(hypothesis3 == "H0", "OK", "*")
   
-  # ------------------------------------------------------------------
-  # 4 Test: t-тест для проверки постоянного среднего (встроенная функция)
-  # ------------------------------------------------------------------
-  n <- length(x)
+  ## Тест 4: t-тест для проверки постоянного среднего
   half <- floor(n / 2)
   group1 <- x[1:half]
   group2 <- x[(half + 1):n]
-  t_test_result <- t.test(group1, group2, alternative = "two.sided", conf.level = 0.99)
-  hypothesis4 <- ifelse(t_test_result$p.value > 0.05, "H0", "H1")
-  cat("----- 4 Test: t-тест для постоянного среднего -----\n")
-  cat("t-статистика:", t_test_result$statistic, "\n")
-  cat("p-value:", t_test_result$p.value, "\n")
-  cat("Доверительный интервал:", paste("[", paste(round(t_test_result$conf.int, 3), collapse = ", "), "]"), "\n")
-  cat("Вывод по гипотезе:", hypothesis4, "\n\n")
-  results$test4 <- list(t_statistic=t_test_result$statistic, p_value=t_test_result$p.value, 
-                          conf_int=t_test_result$conf.int, hypothesis=hypothesis4)
-  ok_flags[4] <- ifelse(hypothesis4=="H0", "OK", "*")
+  t_test <- t.test(group1, group2, alternative = "two.sided", conf.level = 0.99)
+  hypothesis4 <- ifelse(t_test$p.value > 0.05, "H0", "H1")
+  cat("----- Тест 4: t-тест -----\n")
+  results$test4 <- list(p_value = t_test$p.value, hypothesis = hypothesis4)
+  ok_flags[4] <- ifelse(hypothesis4 == "H0", "OK", "*")
   
-  # ------------------------------------------------------------------
-  # 5 Test: F-тест Фишера для равенства дисперсий (встроенная функция)
-  # ------------------------------------------------------------------
-  half <- floor(n / 2)
+  ## Тест 5: F-тест Фишера для равенства дисперсий
   group1 <- x[1:half]
   group2 <- x[(half + 1):n]
+  f_test <- var.test(group1, group2, alternative = "two.sided", conf.level = 0.95)
+  hypothesis5 <- ifelse(f_test$p.value > 0.05, "H0", "H1")
+  cat("----- Тест 5: F-тест -----\n")
+  results$test5 <- list(p_value = f_test$p.value, hypothesis = hypothesis5)
+  ok_flags[5] <- ifelse(hypothesis5 == "H0", "OK", "*")
   
-  var_test_result <- var.test(group1, group2, alternative = "two.sided", conf.level = 0.95)
-  hypothesis5 <- ifelse(var_test_result$p.value > 0.05, "H0", "H1")
-  cat("----- 5 Test: F-тест Фишера -----\n")
-  cat("F-статистика:", var_test_result$statistic, "\n")
-  cat("p-value:", var_test_result$p.value, "\n")
-  cat("Доверительный интервал отношения дисперсий:", paste("[", paste(round(var_test_result$conf.int, 3), collapse = ", "), "]"), "\n")
-  cat("Вывод по гипотезе:", hypothesis5, "\n\n")
-  results$test5 <- list(F_statistic=var_test_result$statistic, p_value=var_test_result$p.value,
-                          conf_int=var_test_result$conf.int, hypothesis=hypothesis5)
-  ok_flags[5] <- ifelse(hypothesis5=="H0", "OK", "*")
-  
-  # ------------------------------------------------------------------
-  # Итоговая сводная таблица результатов
-  # ------------------------------------------------------------------
   overall_ok <- sum(ok_flags == "OK")
   overall <- if (overall_ok >= 4) "Модель адекватна" else "Модель неадекватна"
   
-  cat("----------------------------------------------------------\n")
-  cat("| 1 Test | 2 Test | 3 Test | 4 Test | 5 Test |\n")
-  cat("----------------------------------------------------------\n")
-  cat(sprintf("|   %3s   |   %3s   |   %3s   |   %3s   |   %3s   |\n", 
-              ok_flags[1], ok_flags[2], ok_flags[3], ok_flags[4], ok_flags[5]))
-  cat("----------------------------------------------------------\n")
-  cat("Общий вывод:", overall, "\n")
-  
   results$overall <- overall
-  results$summary <- sprintf("|   %3s   |   %3s   |   %3s   |   %3s   |   %3s   | => %s", 
-                             ok_flags[1], ok_flags[2], ok_flags[3], ok_flags[4], ok_flags[5], overall)
+  results$summary <- sprintf("| %6s | %6s | %6s | %6s | %6s | => %s", 
+                              ok_flags[1], ok_flags[2], ok_flags[3], ok_flags[4], ok_flags[5], overall)
+  
+  cat("----------------------------------------------------------\n")
+  cat("| Тест 1 | Тест 2 | Тест 3 | Тест 4 | Тест 5 |\n")
+  cat("----------------------------------------------------------\n")
+  cat(results$summary, "\n")
+  cat("----------------------------------------------------------\n")
   
   return(results)
 }
