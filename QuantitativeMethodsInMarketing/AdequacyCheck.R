@@ -1,5 +1,7 @@
+# AdequacyCheck.R
+
 run_adequacy_tests <- function(x) {
-  # Приводим входной вектор к числовому типу и удаляем соседние дубликаты
+  # Приводим x к числовому типу и удаляем соседние дубликаты
   x <- as.numeric(x)
   if (length(x) > 1) {
     x <- x[c(TRUE, diff(x) != 0)]
@@ -20,7 +22,6 @@ run_adequacy_tests <- function(x) {
   z_critical <- qnorm(0.975)
   hypothesis1 <- ifelse((z_critical - z) > 0, "H0", "H1")
   p_value1 <- 2 * (1 - pnorm(abs(z)))
-  
   cat("----- Тест 1: Критерий пиков и впадин -----\n")
   cat("nruns:", nruns, "mean_runs:", mean_runs, "sigma:", sigma, "z:", z, "\n")
   results$test1 <- list(p_value = p_value1, hypothesis = hypothesis1)
@@ -44,7 +45,6 @@ run_adequacy_tests <- function(x) {
   zCritical2 <- qnorm(0.975)
   hypothesis2 <- ifelse((zCritical2 - z2) > 0, "H0", "H1")
   p_value2 <- 2 * (1 - pnorm(abs(z2)))
-  
   cat("----- Тест 2: Медианный критерий -----\n")
   results$test2 <- list(p_value = p_value2, hypothesis = hypothesis2)
   ok_flags[2] <- ifelse(hypothesis2 == "H0", "OK", "*")
@@ -67,8 +67,6 @@ run_adequacy_tests <- function(x) {
   ok_flags[4] <- ifelse(hypothesis4 == "H0", "OK", "*")
   
   ## Тест 5: F-тест Фишера для равенства дисперсий
-  group1 <- x[1:half]
-  group2 <- x[(half + 1):n]
   f_test <- var.test(group1, group2, alternative = "two.sided", conf.level = 0.95)
   hypothesis5 <- ifelse(f_test$p.value > 0.05, "H0", "H1")
   cat("----- Тест 5: F-тест -----\n")
@@ -81,7 +79,6 @@ run_adequacy_tests <- function(x) {
   results$overall <- overall
   results$summary <- sprintf("| %6s | %6s | %6s | %6s | %6s | => %s", 
                               ok_flags[1], ok_flags[2], ok_flags[3], ok_flags[4], ok_flags[5], overall)
-  
   cat("----------------------------------------------------------\n")
   cat("| Тест 1 | Тест 2 | Тест 3 | Тест 4 | Тест 5 |\n")
   cat("----------------------------------------------------------\n")
