@@ -11,7 +11,7 @@ calculate_mape <- function(actual, predicted) {
 select_arima_candidates <- function(x_t, 
                                     p_range = 0:3, d_range = 0:1, q_range = 0:3, 
                                     P_range = 0:3, D_range = 0:1, Q_range = 0:3,
-                                    T_range = 1:12) {
+                                    T_range = 1:1) {
   candidate_info <- data.frame(p = integer(), d = integer(), q = integer(), 
                                P = integer(), D = integer(), Q = integer(), T = integer(),
                                mape = numeric(), aic = numeric(), stringsAsFactors = FALSE)
@@ -35,7 +35,7 @@ select_arima_candidates <- function(x_t,
                             iteration, total_iterations, p, d, q, P, D, Q, T_val))
                 
                 fit <- tryCatch({
-                  arima(ts(x_t, frequency = T_val), 
+                  Arima(ts(x_t, frequency = T_val), 
                         order = c(p, d, q), 
                         seasonal = list(order = c(P, D, Q), period = T_val))
                 }, error = function(e) { NULL })
@@ -88,7 +88,7 @@ select_arima_candidates <- function(x_t,
 select_arima_from_candidates <- function(x_t, 
                          p_range = 0:3, d_range = 0:1, q_range = 0:3, 
                          P_range = 0:3, D_range = 0:1, Q_range = 0:3,
-                         T_range = 2:12) {
+                         T_range = 1:12) {
   candidates <- select_arima_candidates(x_t, p_range, d_range, q_range, P_range, D_range, Q_range, T_range)
   candidate_info <- candidates$candidate_info
   models_list <- candidates$models
