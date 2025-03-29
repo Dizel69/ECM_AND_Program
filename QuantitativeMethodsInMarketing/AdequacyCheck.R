@@ -1,5 +1,4 @@
 # AdequacyCheck.R
-
 run_adequacy_tests <- function(x) {
   # Приводим x к числовому типу и удаляем соседние дубликаты
   x <- as.numeric(x)
