@@ -10,54 +10,55 @@ calculate_mape <- function(actual, predicted) {
 # Функция для перебора всех вариантов параметров и сохранения кандидатов
 select_arima_candidates <- function(x_t, 
                                     p_range = 0:3, d_range = 0:1, q_range = 0:3, 
-                                    P_range = 0:3, D_range = 0:1, Q_range = 0:3) {
+                                    P_range = 0:3, D_range = 0:1, Q_range = 0:3,
+                                    T_range = 1:12) {
   candidate_info <- data.frame(p = integer(), d = integer(), q = integer(), 
                                P = integer(), D = integer(), Q = integer(), T = integer(),
                                mape = numeric(), aic = numeric(), stringsAsFactors = FALSE)
   models_list <- list()
   
-  # Задаём сезонность вручную (например, если данные месячные, frequency = 12; здесь T_val = 6)
-  T_val <- 6
-  cat(sprintf("Определённая сезонность (T): %d\n", T_val))
+  cat(sprintf("Перебор сезонности из диапазона: T_range = %s\n", paste(T_range, collapse = ", ")))
   
   iteration <- 0
-  total_iterations <- length(p_range) * length(d_range) * length(q_range) *
+  total_iterations <- length(T_range) * length(p_range) * length(d_range) * length(q_range) *
                       length(P_range) * length(D_range) * length(Q_range)
   
-  for (D in D_range) {
-    for (P in P_range) {
-      for (Q in Q_range) {
-        for (d in d_range) {
-          for (p in p_range) {
-            for (q in q_range) {
-              iteration <- iteration + 1
-              cat(sprintf("Итерация %d из %d: (p,d,q)=(%d,%d,%d), (P,D,Q,T)=(%d,%d,%d,%d)\n",
-                          iteration, total_iterations, p, d, q, P, D, Q, T_val))
-              
-              fit <- tryCatch({
-                arima(ts(x_t, frequency = T_val), 
-                      order = c(p, d, q), 
-                      seasonal = list(order = c(P, D, Q), period = T_val))
-              }, error = function(e) { NULL })
-              
-              if (!is.null(fit)) {
-                aic_val <- AIC(fit)
-                fc <- tryCatch({
-                  fitted(fit)
-                }, error = function(e) { rep(NA, length(x_t)) })
-                if (length(fc) == length(x_t)) {
-                  mape_val <- calculate_mape(x_t, fc)
-                } else {
-                  mape_val <- NA
-                }
+  for (T_val in T_range) {
+    for (D in D_range) {
+      for (P in P_range) {
+        for (Q in Q_range) {
+          for (d in d_range) {
+            for (p in p_range) {
+              for (q in q_range) {
+                iteration <- iteration + 1
+                cat(sprintf("Итерация %d из %d: (p,d,q)=(%d,%d,%d), (P,D,Q,T)=(%d,%d,%d,%d)\n",
+                            iteration, total_iterations, p, d, q, P, D, Q, T_val))
                 
-                if (!is.na(mape_val)) {
-                  candidate_info <- rbind(candidate_info,
-                                          data.frame(p = p, d = d, q = q,
-                                                     P = P, D = D, Q = Q, T = T_val,
-                                                     mape = mape_val, aic = aic_val,
-                                                     stringsAsFactors = FALSE))
-                  models_list[[nrow(candidate_info)]] <- fit
+                fit <- tryCatch({
+                  arima(ts(x_t, frequency = T_val), 
+                        order = c(p, d, q), 
+                        seasonal = list(order = c(P, D, Q), period = T_val))
+                }, error = function(e) { NULL })
+                
+                if (!is.null(fit)) {
+                  aic_val <- AIC(fit)
+                  fc <- tryCatch({
+                    fitted(fit)
+                  }, error = function(e) { rep(NA, length(x_t)) })
+                  if (length(fc) == length(x_t)) {
+                    mape_val <- calculate_mape(x_t, fc)
+                  } else {
+                    mape_val <- NA
+                  }
+                  
+                  if (!is.na(mape_val)) {
+                    candidate_info <- rbind(candidate_info,
+                                              data.frame(p = p, d = d, q = q,
+                                                         P = P, D = D, Q = Q, T = T_val,
+                                                         mape = mape_val, aic = aic_val,
+                                                         stringsAsFactors = FALSE))
+                    models_list[[nrow(candidate_info)]] <- fit
+                  }
                 }
               }
             }
@@ -72,6 +73,7 @@ select_arima_candidates <- function(x_t,
     stop("Не найдено кандидатов с вычисленным MAPE.")
   }
   
+  # Сортировка по MAPE, затем по AIC
   candidate_info <- candidate_info[order(candidate_info$mape, candidate_info$aic), ]
   cat("Топ-5 кандидатов:\n")
   print(head(candidate_info, 5))
@@ -85,8 +87,9 @@ select_arima_candidates <- function(x_t,
 # Функция для выбора лучшей модели из списка кандидатов с проверкой адекватности
 select_arima_from_candidates <- function(x_t, 
                          p_range = 0:3, d_range = 0:1, q_range = 0:3, 
-                         P_range = 0:3, D_range = 0:1, Q_range = 0:3) {
-  candidates <- select_arima_candidates(x_t, p_range, d_range, q_range, P_range, D_range, Q_range)
+                         P_range = 0:3, D_range = 0:1, Q_range = 0:3,
+                         T_range = 2:12) {
+  candidates <- select_arima_candidates(x_t, p_range, d_range, q_range, P_range, D_range, Q_range, T_range)
   candidate_info <- candidates$candidate_info
   models_list <- candidates$models
   
