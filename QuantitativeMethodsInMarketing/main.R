@@ -26,7 +26,7 @@ x_t <- x[c(TRUE, diff(x) != 0)]
 cat(x_t)
 cat("Подбор модели ARIMA с сезонностью...\n")
 # Получаем список кандидатов и выбираем лучшую модель, проходящую тесты адекватности
-results <- select_arima_from_candidates(x_t, T_range = 1:1)
+results <- select_arima_from_candidates(x_t, T_range = 1:12
 
 cat("\nВыбранная модель:\n")
 cat(sprintf("order = (%d, %d, %d), seasonal = (%d, %d, %d, %d)\n",

@@ -11,7 +11,7 @@ calculate_mape <- function(actual, predicted) {
 select_arima_candidates <- function(x_t, 
                                     p_range = 0:3, d_range = 0:1, q_range = 0:3, 
                                     P_range = 0:3, D_range = 0:1, Q_range = 0:3,
-                                    T_range = 1:1) {
+                                    T_range = 1:12) {
   candidate_info <- data.frame(p = integer(), d = integer(), q = integer(), 
                                P = integer(), D = integer(), Q = integer(), T = integer(),
                                mape = numeric(), aic = numeric(), stringsAsFactors = FALSE)
