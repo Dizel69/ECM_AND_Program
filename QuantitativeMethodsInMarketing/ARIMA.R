@@ -3,15 +3,14 @@ library(forecast)
 
 # Функция для вычисления MAPE (in-sample)
 calculate_mape <- function(actual, predicted) {
-  # MAPE = (1/n) * Σ(|actual - predicted| / |actual|) * 100
   return(mean(abs((actual - predicted) / abs(actual)), na.rm = TRUE) * 100)
 }
 
 # Функция для перебора всех вариантов параметров и сохранения кандидатов
 select_arima_candidates <- function(x_t, 
-                                    p_range = 0:3, d_range = 0:1, q_range = 0:3, 
-                                    P_range = 0:3, D_range = 0:1, Q_range = 0:3,
-                                    T_range = 1:12) {
+                                    p_range = 1:1, d_range = 0:0, q_range = 1:1, 
+                                    P_range = 2:2, D_range = 1:1, Q_range = 3:3,
+                                    T_range = 12:12) {
   candidate_info <- data.frame(p = integer(), d = integer(), q = integer(), 
                                P = integer(), D = integer(), Q = integer(), T = integer(),
                                mape = numeric(), aic = numeric(), stringsAsFactors = FALSE)
@@ -86,9 +85,9 @@ select_arima_candidates <- function(x_t,
 
 # Функция для выбора лучшей модели из списка кандидатов с проверкой адекватности
 select_arima_from_candidates <- function(x_t, 
-                         p_range = 0:3, d_range = 0:1, q_range = 0:3, 
-                         P_range = 0:3, D_range = 0:1, Q_range = 0:3,
-                         T_range = 1:12) {
+                         p_range = 1:1, d_range = 0:0, q_range = 1:1, 
+                         P_range = 2:2, D_range = 1:1, Q_range = 3:3,
+                         T_range = 12:12) {
   candidates <- select_arima_candidates(x_t, p_range, d_range, q_range, P_range, D_range, Q_range, T_range)
   candidate_info <- candidates$candidate_info
   models_list <- candidates$models
