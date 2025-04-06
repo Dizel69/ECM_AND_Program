@@ -26,20 +26,22 @@ x_t <- x[c(TRUE, diff(x) != 0)]
 cat(x_t)
 cat("Подбор модели ARIMA с сезонностью...\n")
 # Получаем список кандидатов и выбираем лучшую модель, проходящую тесты адекватности
-results <- select_arima_from_candidates(x_t, T_range = 1:12
+results <- select_arima_from_candidates(x_t, T_range = 12:12)
 
 cat("\nВыбранная модель:\n")
 cat(sprintf("order = (%d, %d, %d), seasonal = (%d, %d, %d, %d)\n",
             results$best_order[1], results$best_order[2], results$best_order[3],
             results$best_seasonal_order[1], results$best_seasonal_order[2],
             results$best_seasonal_order[3], results$best_seasonal_order[4]))
+MAPE = mean(abs(results$residuals)/x_t) * 100
 cat(sprintf("MAPE модели: %.2f%%\n\n", results$best_mape))
-
+cat(sprintf("MAPE модели: %.2f%%\n\n", MAPE))
 # Вывод сводной таблицы тестов адекватности
 adequacy <- run_adequacy_tests(results$residuals)
 cat("Сводная таблица тестов для выбранной модели:\n")
 print(adequacy$summary)
-
+residuals1 <- results$residuals
+write.csv(residuals1, resid.csv)
 # Сохранение графика остатков модели
 png("residuals_plot.png", width = 800, height = 600)
 plot(results$residuals, type = "o", col = "blue", 
