@@ -1,0 +1,23 @@
+{
+  "valid_user": {
+    "username": "test_user",
+    "password": "secure_password"
+  },
+  "invalid_users": [
+    {
+      "username": "invalid",
+      "password": "wrong",
+      "expected_error": "Invalid credentials"
+    },
+    {
+      "username": "",
+      "password": "any",
+      "expected_error": "Username is required"
+    }
+  ],
+  "dashboard_expected_elements": [
+    "#user-greeting",
+    "#main-menu",
+    ".notification-bell"
+  ]
+}

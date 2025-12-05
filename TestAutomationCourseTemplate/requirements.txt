@@ -1,0 +1,12 @@
+dotenv==0.9.9
+greenlet==3.2.4
+iniconfig==2.1.0
+packaging==25.0
+playwright==1.55.0
+pluggy==1.6.0
+pyee==13.0.0
+Pygments==2.19.2
+pytest==8.4.2
+python-dotenv==1.1.1
+typing_extensions==4.15.0
+allure-pytest==2.8.18
