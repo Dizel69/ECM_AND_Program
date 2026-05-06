@@ -1,0 +1,205 @@
+\documentclass[a4paper,12pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[russian]{babel}
+\usepackage{xstring}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{enumitem}
+\usepackage{multicol}
+\usepackage[svgnames]{xcolor}
+\usepackage{sectsty}
+\usepackage{soul}
+\usepackage{soulutf8}
+\usepackage{pb-diagram}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usepackage{rotating}
+
+\author{
+Типографические приемы
+Выполнил: Фамилия И.\,О. \\
+Группа: группа
+}
+\title{Лабораторная работа по \LaTeX}
+\date{\today}
+
+\sodef\soparam{}{.5ex plus .2ex}{1em plus .5 em}{1em plus .5 em}
+\def\so#1{\edef\xso{{#1}}\expandafter\soparam\xso}
+
+\voffset=-25.4mm
+\topmargin=25mm
+\headheight=0mm
+\headsep=0mm
+\textheight=247mm
+
+\hoffset=-25.4mm
+\oddsidemargin=20mm
+\evensidemargin=20mm
+\textwidth=170mm
+
+\allsectionsfont{\raggedright\rmfamily}
+\makeatletter
+\def\@seccntformat#1{\csname the#1\endcsname.~}
+\makeatother
+
+\makeatletter
+\def\eatrelax relax#1#2EndOfControl{#1#2} \relax
+\def\createverb#1{%
+    \begingroup
+    \xdef\bbb{\detokenize{#1}}
+    \let\do\@makeother
+    \dospecials
+    \catcode`\@=12
+    \catcode`\{=12
+    \catcode`\}=12
+    \catcode`\\=12
+    \catcode`\ =10
+    \tokenize{\verbtext}{\bbb}%
+    \ttfamily\expandafter\eatrelax\verbtext EndOfControl
+    \endgroup
+}%
+\def\hmrg{.7em}
+\def\vmrg{.7ex}
+\def\frm#1#2#3{\fcolorbox{black}{#3}{\hspace*{\hmrg}\begin{minipage}{#1}\vspace*{\vmrg}#2\vspace*{\vmrg}\end{minipage}\hspace*{\hmrg}}}
+\long\def\tsk#1{\fcolorbox{black}{MistyRose}{\hspace*{\hmrg}\begin{minipage}{.8\textwidth}#1\end{minipage}\hspace*{\hmrg}}}
+\def\illustr#1#2#3{\par\vspace*{\vmrg}\noindent\frm{.55\textwidth}{\createverb{#1}}{#2}\quad \frm{.35\textwidth}{#1}{#3}\par\vspace*{\vmrg}}
+\def\noillustr#1#2#3{\par\vspace*{\vmrg}\noindent\frm{.55\textwidth}{\createverb{#1}}{#2}\par\vspace*{\vmrg}}
+\def\illustrate#1{\illustr{#1}{Moccasin}{Azure}}
+\def\noillustrate#1{\noillustr{#1}{Moccasin}{Azure}}
+\def\nillustrate#1{\illustr{#1}{yellow}{Pink}}
+\makeatother
+
+\newtheorem{thr}{Теорема}
+\newtheorem{crlx}[thr]{Следствие}
+\newtheorem{lmm}[thr]{Лемма}
+\newtheorem{clm}[thr]{Утверждение}
+\newtheorem{dfn}{Определение}
+\newtheorem{ax}{Аксиома}
+
+\newtheoremstyle{claim}{1mm}{.2mm}{\slshape}{}{\scshape}{:}{.5em plus 3em}{}
+\theoremstyle{claim}
+\newtheorem{crl}[thr]{Следствие}
+
+\newtheoremstyle{theor}{1mm}{.2mm}{\upshape\sffamily}{}{\scshape}{:}{.5em}{}
+\theoremstyle{theor}
+\newtheorem{thrx}[thr]{Теорема}
+
+\begin{document}
+
+\maketitle
+
+\textbf{12. Задания}
+Написать в \LaTeX\ следующие фрагменты:
+
+\vspace{1em}
+\noindent 1)\hspace{0.7em}
+\tsk{%
+\begin{tabular}{p{0.48\linewidth}|p{0.48\linewidth}}
+\textbf{Теорема 1.} \textit{Если $a$ зависит от $b$, то $b$ зависит от $a$.}
+
+\textit{Доказательство.} Основано на использовании теоремы Лахлана об определимости.
+Обычно, сначала доказательство проводится, &
+когда рассматривается зависимость над $\omega$-насыщенной элементарной подсистемой, после чего результат обобщается на произвольный случай.
+\end{tabular}
+}
+
+\vspace{1em}
+\noindent 3)\hspace{0.7em}
+\tsk{%
+\textbf{Определение 1} (Ортогональная матрица). Матрица $A$ называется \so{ортогональной}, если $A^{-1}=A^{T}$.
+}
+
+\vspace{1em}
+\noindent 4)\hspace{0.7em}
+\tsk{%
+Следующий граф нельзя обойти, пройдя по каждому из ребер
+в точности один раз:
+
+\vspace{0.8em}
+\begin{center}
+\begin{tikzpicture}[line cap=round, line join=round]
+  \node (A) at (0,0) {$A$};
+  \node (B) at (2.4,0) {$B$};
+  \node (C) at (4.8,0) {$C$};
+  \node (D) at (2.4,-1.8) {$D$};
+  \draw (A) -- (B);
+  \draw (B) -- (C);
+  \draw (A) -- (D);
+  \draw (B) -- (D);
+  \draw (C) -- (D);
+\end{tikzpicture}
+\end{center}
+}
+
+\vspace{1em}
+\noindent 5)\hspace{0.7em}
+\tsk{%
+Определение 2 (Амальгамируемость). Категория обладает
+\so{свойством амальгамируемости}, если любая диаграмма морфизмов вида
+
+\vspace{0.8em}
+\begin{center}
+$$\begin{diagram}
+\node{A}\arrow{e}\arrow{s}\node{B}\\
+\node{C}
+\end{diagram}$$
+\end{center}
+
+может быть достроена до коммутативной:
+
+\vspace{0.6em}
+\begin{center}
+$$\begin{diagram}
+\node{A}\arrow{e}\arrow{s}\node{B}\arrow{s,..}\\
+\node{C}\arrow{e,..}\node{D}
+\end{diagram}$$
+\end{center}
+}
+
+\vspace{1em}
+\noindent 6)\hspace{0.7em}
+\tsk{%
+Гомоморфный образ $(\mathfrak{H})$ группы $(\mathfrak{G})$
+
+По закону коммунизма
+
+Изоморфен фактор-группе $(\mathfrak{G}/\mathfrak{K})$
+
+По ядру гомоморфизма $(\mathfrak{K})$.
+
+\vspace{0.8em}
+\begin{center}
+$$\begin{diagram}
+\node{\mathfrak{G}}\arrow{e,t}{\supseteq}\arrow{se,t}{h}\node{\mathfrak{K}}\\
+\node{\mathfrak{G}/\mathfrak{K}}\arrow{e,<>}\node{\mathfrak{H}}
+\end{diagram}$$
+\end{center}
+}
+
+\vspace{1em}
+\noindent 7)\hspace{0.7em}
+\tsk{%
+Таблица смешения цветов:
+
+\vspace{0.8em}
+\begin{center}
+\setlength{\tabcolsep}{10pt}
+\renewcommand{\arraystretch}{1.55}
+\begin{tabular}{|c|c|c|c|}
+\hline
+ & \rotatebox{90}{\textcolor{red}{Красный}} & \rotatebox{90}{\textcolor{green!70!black}{Зеленый}} & \rotatebox{90}{\textcolor{blue}{Синий}} \\
+\hline
+\textcolor{red}{Красный} & \textcolor{red}{\rule{1.6ex}{1.6ex}} & \textcolor{yellow}{\rule{1.6ex}{1.6ex}} & \textcolor{magenta}{\rule{1.6ex}{1.6ex}} \\
+\hline
+\textcolor{green!70!black}{Зеленый} & \textcolor{yellow}{\rule{1.6ex}{1.6ex}} & \textcolor{green!70!black}{\rule{1.6ex}{1.6ex}} & \textcolor{cyan}{\rule{1.6ex}{1.6ex}} \\
+\hline
+\textcolor{blue}{Синий} & \textcolor{magenta}{\rule{1.6ex}{1.6ex}} & \textcolor{cyan}{\rule{1.6ex}{1.6ex}} & \textcolor{blue}{\rule{1.6ex}{1.6ex}} \\
+\hline
+\end{tabular}
+\end{center}
+}
+
+\end{document}
