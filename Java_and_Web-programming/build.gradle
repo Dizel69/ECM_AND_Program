@@ -1,0 +1,7 @@
+// Агрегатор: приложение и образ Docker описаны в модуле simpleDao.
+plugins {
+    id 'base'
+}
+
+group = 'w2l.inspired'
+version = '0.0.1-SNAPSHOT'

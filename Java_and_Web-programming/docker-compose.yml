@@ -1,0 +1,45 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: notebook
+      POSTGRES_USER: notebook
+      POSTGRES_PASSWORD: notebook
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U notebook -d notebook"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  adminer:
+    image: adminer:5
+    ports:
+      - "${ADMINER_PORT:-5050}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+
+  app:
+    build:
+      context: ./simpleDao
+      dockerfile: Dockerfile
+    ports:
+      - "8090:8090"
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: notebook
+      POSTGRES_USER: notebook
+      POSTGRES_PASSWORD: notebook
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pg_data:

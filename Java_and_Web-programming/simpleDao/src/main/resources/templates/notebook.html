@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Блокнот баллов</title>
+    <link rel="stylesheet" th:href="@{/styles.css}" href="/styles.css"/>
+</head>
+<body>
+<header class="top-bar">
+    <div class="brand">
+        <h1>Блокнот событий</h1>
+        <p class="subtitle">
+            Сначала <strong>создаёте задачу</strong> (текст и величину баллов) — она попадает в список активных.
+            Затем в списке нажимаете <strong>«Готово»</strong> или <strong>«Не готово»</strong> — строка переносится в журнал с
+            <strong>+N</strong> или <strong>−N</strong>. В БД: незакрытые задачи — таблица <code>pending_tasks</code>,
+            журнал — <code>event_records</code> (<code>id</code>, <code>description</code>, <code>points</code>, <code>created_at</code>).
+        </p>
+    </div>
+    <div class="score-corner" th:classappend="${scoreClass}">
+        <span class="score-corner-label">Счёт</span>
+        <span class="score-corner-value"
+              th:text="${totalScore >= 0 ? '+' + totalScore : totalScore}">+0</span>
+    </div>
+</header>
+
+<p class="flash-error" th:if="${error}" th:text="${error}"></p>
+
+<section class="panel">
+    <h2>1. Новая задача</h2>
+    <p class="hint">Задача только попадает в список ниже. Баллы в журнал пойдут после того, как отметите исход.</p>
+    <form class="event-form" th:action="@{/tasks/create}" method="post">
+        <label for="description">Что нужно сделать / о чём напоминание</label>
+        <textarea id="description" name="description" rows="3"
+                  th:placeholder="${T(w2l.inspired.NotebookConstants).EXAMPLE_DESCRIPTION}"
+                  placeholder="Например: сходил на пары" required></textarea>
+
+        <label for="magnitude">Баллы (положительная величина)</label>
+        <input id="magnitude" name="magnitude" type="number" min="1" step="1" value="10" required/>
+
+        <button type="submit" class="btn-primary">Добавить в список активных</button>
+    </form>
+</section>
+
+<section class="panel">
+    <h2>2. Активные задачи</h2>
+    <p class="empty" th:if="${#lists.isEmpty(pendingTasks)}">Пока нет задач — создайте первую блоком выше.</p>
+
+    <div class="table-wrap" th:if="${!#lists.isEmpty(pendingTasks)}">
+        <table class="journal-table">
+            <thead>
+            <tr>
+                <th scope="col">#</th>
+                <th scope="col">Создана</th>
+                <th scope="col">Задача</th>
+                <th scope="col">± при исходе</th>
+                <th scope="col">Исход</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="t, iterStat : ${pendingTasks}">
+                <td th:text="${iterStat.count}" class="col-num">1</td>
+                <td><time th:text="${#temporals.format(t.createdAt, 'dd.MM.yyyy HH:mm')}">01.01.2026</time></td>
+                <td th:text="${t.description}">Текст</td>
+                <td class="col-points">
+                    <span class="pts pts-pos" th:text="|±${t.magnitude}|">±10</span>
+                </td>
+                <td class="col-actions cell-actions">
+                    <form th:action="@{/tasks/complete}" method="post" class="inline-row-form">
+                        <input type="hidden" name="taskId" th:value="${t.id}"/>
+                        <button type="submit" name="outcome" value="done" class="btn-done btn-compact">Готово</button>
+                    </form>
+                    <form th:action="@{/tasks/complete}" method="post" class="inline-row-form">
+                        <input type="hidden" name="taskId" th:value="${t.id}"/>
+                        <button type="submit" name="outcome" value="miss" class="btn-miss btn-compact">Не готово</button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="panel">
+    <h2>3. Журнал — выполнено / не выполнено</h2>
+    <p class="hint">Здесь только закрытые задачи: отметка «Готово» даёт <strong>+N</strong>, «Не готово» — <strong>−N</strong>.</p>
+    <p class="empty" th:if="${#lists.isEmpty(records)}">Журнал пуст — закройте задачу из списка выше.</p>
+
+    <div class="table-wrap" th:if="${!#lists.isEmpty(records)}">
+        <table class="journal-table">
+            <thead>
+            <tr>
+                <th scope="col">#</th>
+                <th scope="col">Дата и время</th>
+                <th scope="col">Описание</th>
+                <th scope="col">Баллы</th>
+                <th scope="col"></th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="r, iterStat : ${records}">
+                <td th:text="${iterStat.count}" class="col-num">1</td>
+                <td><time th:text="${#temporals.format(r.createdAt, 'dd.MM.yyyy HH:mm')}">01.01.2026</time></td>
+                <td th:text="${r.description}">Текст</td>
+                <td class="col-points">
+                    <span class="pts"
+                          th:classappend="${r.points < 0} ? ' pts-neg' : ' pts-pos'"
+                          th:text="${r.points >= 0 ? '+' + r.points : r.points}">+10</span>
+                </td>
+                <td class="col-actions">
+                    <form class="inline-delete" th:action="@{/events/delete}" method="post">
+                        <input type="hidden" name="id" th:value="${r.id}"/>
+                        <button type="submit" class="btn-link">Удалить строку</button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+</body>
+</html>
