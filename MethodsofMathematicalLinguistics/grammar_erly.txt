@@ -16,5 +16,5 @@
 #   %start S
 
 %start S
-S -> S T | T
-T -> a T | b
+S -> T d S | eps
+T -> a T b | eps
