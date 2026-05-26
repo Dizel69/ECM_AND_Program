@@ -12,7 +12,9 @@
 start до позиции end.
 """
 
+# deque — очередь ситуаций, которые ещё нужно обработать.
 from collections import deque
+# dataclass — удобный способ описать одну ситуацию (правило + позиция точки).
 from dataclasses import dataclass
 import os
 
@@ -22,22 +24,27 @@ import os
 os.system("")
 
 
+# Пустое слово можно вводить так: пустая строка, ε, eps, epsilon.
 EPSILON_ALIASES = {"", "ε", "eps", "epsilon"}
+# Стартовый символ по умолчанию, если в файле нет строки %start.
 DEFAULT_START_SYMBOL = "S"
+# Имя файла с грамматикой (лежит рядом с этим скриптом).
+GRAMMAR_FILE_NAME = "grammar_erly.txt"
+GRAMMAR_FILE_PATH = os.path.join(os.path.dirname(__file__), GRAMMAR_FILE_NAME)
 
+# Grammar: словарь «левая часть -> список правых частей».
+# Chart: таблица M[i][j], в каждой ячейке — множество ситуаций.
 Grammar = dict[str, list[tuple[str, ...]]]
 Chart = list[list[set["EarleyState"]]]
 
 
 class TerminalColor:
-    """Короткие ANSI-коды для цветного вывода таблицы."""
+    """Короткие ANSI-коды для цветного вывода результата проверки."""
 
     RESET = "\033[0m"
     BOLD = "\033[1m"
     RED = "\033[31m"
     GREEN = "\033[92m"
-    CYAN = "\033[96m"
-    YELLOW = "\033[93m"
 
 
 @dataclass(frozen=True)
@@ -52,9 +59,9 @@ class EarleyState:
     состояний и автоматически отбрасывает дубликаты.
     """
 
-    left: str
-    right: tuple[str, ...]
-    dot_position: int
+    left: str  # левая часть правила, например "S"
+    right: tuple[str, ...]  # правая часть, например ("A", "B")
+    dot_position: int  # индекс, куда вставить точку (0 = в начале)
 
     def completed(self) -> bool:
         """Проверяет, дошла ли точка до конца правой части правила."""
@@ -67,7 +74,7 @@ class EarleyState:
         возвращается None.
         """
         if self.completed():
-            return None
+            return None  # после точки ничего нет
 
         return self.right[self.dot_position]
 
@@ -78,26 +85,6 @@ class EarleyState:
             right=self.right,
             dot_position=self.dot_position + 1,
         )
-
-def default_grammar() -> tuple[Grammar, str]:
-    """Возвращает грамматику, которая используется при запуске программы.
-
-    В ней:
-        T -> aT | b  описывает слова вида b, ab, aab, ...
-        S -> ST | T  разрешает склеивать несколько таких блоков подряд.
-    """
-    grammar: Grammar = {
-        "S": [
-            ("S", "T"),
-            ("T",),
-        ],
-        "T": [
-            ("a", "T"),
-            ("b",),
-        ],
-    }
-
-    return grammar, DEFAULT_START_SYMBOL
 
 
 def split_right_part(text: str) -> tuple[str, ...]:
@@ -112,12 +99,15 @@ def split_right_part(text: str) -> tuple[str, ...]:
     """
     cleaned_text = text.strip()
 
+    # Пустая правая часть = правило A -> ε.
     if cleaned_text in EPSILON_ALIASES:
         return tuple()
 
+    # Если в правой части есть пробелы: "a T" -> ("a", "T").
     if " " in cleaned_text:
         return tuple(cleaned_text.split())
 
+    # Без пробелов: "aT" -> каждый символ отдельно: ("a", "T").
     return tuple(cleaned_text)
 
 
@@ -134,64 +124,55 @@ def read_rule(line: str) -> tuple[str, list[tuple[str, ...]]]:
         raise ValueError("В правиле должен быть символ ->")
 
     left_part, right_part = line.split("->", 1)
-    nonterminal = left_part.strip()
+    nonterminal = left_part.strip()  # левая часть, например S
 
     if not nonterminal:
         raise ValueError("Пустая левая часть правила")
 
+    # Вертикальная черта | разделяет альтернативы одной левой части.
     alternatives = right_part.split("|")
     productions = [split_right_part(variant) for variant in alternatives]
 
     return nonterminal, productions
 
 
-def input_custom_grammar() -> tuple[Grammar, str]:
-    """Запрашивает у пользователя новую грамматику."""
-    print("\nВвод новой грамматики")
-    print("Формат:")
-    print("  S -> ST | T")
-    print("  T -> aT | b\n")
-    print("Или через пробелы:")
-    print("  S -> S T | T")
-    print("  T -> a T | b\n")
-    print("Для пустой строки используйте ε:")
-    print("  A -> ε\n")
-    print("Вводите правила по одному.")
-    print("Пустая строка - закончить ввод.\n")
-
+def load_grammar_from_file(file_path: str) -> tuple[Grammar, str]:
+    """Считывает грамматику из файла перед запуском меню программы."""
     grammar: Grammar = {}
+    start_symbol = DEFAULT_START_SYMBOL
 
-    while True:
-        raw_rule = input("Правило: ").strip()
+    with open(file_path, encoding="utf-8") as grammar_file:
+        for line_number, line in enumerate(grammar_file, start=1):
+            raw_line = line.strip()
 
-        if raw_rule == "":
-            break
+            # Пустые строки и комментарии (# ...) пропускаем.
+            if not raw_line or raw_line.startswith("#"):
+                continue
 
-        try:
-            left_part, productions = read_rule(raw_rule)
-        except ValueError as error:
-            print(f"Ошибка: {error}")
-            print("Попробуйте ещё раз.\n")
-            continue
+            parts = raw_line.split(maxsplit=1)
 
-        # Один и тот же нетерминал можно описывать несколькими строками:
-        # например, отдельно ввести S -> A, а потом S -> B.
-        grammar.setdefault(left_part, []).extend(productions)
+            # Строка %start S задаёт, с какого символа начинать разбор.
+            if parts[0] == "%start":
+                if len(parts) != 2 or not parts[1].strip():
+                    raise ValueError(f"строка {line_number}: после %start нужен символ")
+
+                start_symbol = parts[1].strip()
+                continue
+
+            try:
+                left_part, productions = read_rule(raw_line)
+            except ValueError as error:
+                raise ValueError(f"строка {line_number}: {error}") from error
+
+            # Один и тот же нетерминал можно описывать несколькими строками:
+            # например, отдельно написать S -> A, а потом S -> B.
+            grammar.setdefault(left_part, []).extend(productions)
 
     if not grammar:
-        print("Грамматика не была введена. Используется грамматика по умолчанию.")
-        return default_grammar()
-
-    start_symbol = input("Стартовый символ, по умолчанию S: ").strip()
-
-    if not start_symbol:
-        start_symbol = DEFAULT_START_SYMBOL
-        print(f"Стартовый символ не указан. Используется: {DEFAULT_START_SYMBOL}")
+        raise ValueError("в файле грамматики нет правил")
 
     if start_symbol not in grammar:
-        print(f"Для стартового символа {start_symbol} нет правил.")
-        print("Используется грамматика по умолчанию.")
-        return default_grammar()
+        raise ValueError(f"для стартового символа {start_symbol} нет правил")
 
     return grammar, start_symbol
 
@@ -227,12 +208,12 @@ def parse_word(line: str) -> list[str]:
     cleaned_line = line.strip()
 
     if cleaned_line in EPSILON_ALIASES:
-        return []
+        return []  # пустое слово
 
     if " " in cleaned_line:
-        return cleaned_line.split()
+        return cleaned_line.split()  # "a + b" -> ["a", "+", "b"]
 
-    return list(cleaned_line)
+    return list(cleaned_line)  # "aab" -> ["a", "a", "b"]
 
 
 def render_state(state: EarleyState) -> str:
@@ -257,59 +238,71 @@ def earley_recognize(
 ) -> tuple[bool, Chart]:
     """Проверяет слово алгоритмом Эрли и возвращает итог вместе с таблицей.
 
-    В классическом описании алгоритма есть три основные операции:
+    В конспекте шаги алгоритма обозначены буквами:
 
-    1. Predict / Предсказание.
-       Если после точки стоит нетерминал B, в таблицу добавляются все правила
-       B -> ... с точкой в начале.
-
-    2. Scan / Сканирование.
-       Если после точки стоит терминал и он совпал с текущим символом слова,
-       точка сдвигается вправо, а состояние переносится в следующую позицию.
-
-    3. Complete / Завершение.
-       Если какое-то правило B -> ... полностью распознано, все состояния,
-       которые ждали B после точки, тоже продвигаются на один символ.
+    A. Добавить S -> · γ в M[0][0] для всех правил S -> γ.
+    B. Если A -> α · a β лежит в M[i][j] и следующий символ слова равен a,
+       добавить A -> α a · β в M[i][j + 1].
+    C. Если A -> α · B β лежит в M[i][j], а B -> γ · лежит в M[j][k],
+       добавить A -> α B · β в M[i][k].
+    D. Если A -> α · B β лежит в M[i][j], добавить B -> · γ в M[j][j]
+       для всех правил B -> γ.
 
     В этой реализации таблица двумерная: chart[i][j] хранит ситуации, которые
     относятся к подстроке word[i:j]. Очередь нужна, чтобы каждое новое состояние
     было обработано ровно тогда, когда оно появилось.
     """
     word_length = len(word)
+    # Все ключи grammar — это «большие буквы» (нетерминалы) из левых частей правил.
     nonterminals = set(grammar)
+    # Пустая таблица (n+1) x (n+1), в каждой ячейке пока пустое множество.
     chart: Chart = [
         [set() for _ in range(word_length + 1)]
         for _ in range(word_length + 1)
     ]
+    # Очередь: (i, j, ситуация) — что ещё нужно обработать.
     pending_states: deque[tuple[int, int, EarleyState]] = deque()
 
     def symbol_is_nonterminal(symbol: str | None) -> bool:
+        """Проверяет, является ли символ нетерминалом грамматики."""
         return symbol in nonterminals
 
     def put_state(start: int, end: int, state: EarleyState) -> None:
         """Добавляет состояние в таблицу и очередь, если его там ещё не было."""
         if state in chart[start][end]:
-            return
+            return  # дубликат не добавляем
 
         chart[start][end].add(state)
         pending_states.append((start, end, state))
 
-    # Начинаем с правил стартового символа. Точка стоит в начале, потому что
-    # перед чтением слова не распознана ещё ни одна часть правила.
+    # =============================
+    # Шаг A
+    # =============================
+    # Шаг A: добавляем в M[0][0] все правила стартового символа с точкой
+    # перед правой частью.
+    # В самом начале: все правила стартового символа S с точкой перед правой частью.
+    # Пример: S -> · S T и S -> · T попадают в M[0][0].
     for production in grammar[start_symbol]:
         put_state(0, 0, EarleyState(start_symbol, production, 0))
 
+    # Пока в очереди есть ситуации — применяем к ним шаги B, C, D.
     while pending_states:
         fragment_start, fragment_end, state = pending_states.popleft()
+        # fragment_start = i, fragment_end = j для этой ситуации в M[i][j].
 
+        # Если точка в конце правой части — правило B -> γ · полностью готово.
         if state.completed():
-            # Complete: найдено завершённое правило state.left, которое
-            # покрывает фрагмент word[fragment_start:fragment_end].
+            # =============================
+            # Шаг C
+            # =============================
+            # Шаг C: найдено завершённое правило B -> γ · в M[j][k],
+            # где j = fragment_start, k = fragment_end.
+            # Нашли готовый нетерминал B (state.left) на отрезке [j..k].
             completed_nonterminal = state.left
 
-            # Ищем все ситуации, которые закончились ровно там, где начался
-            # завершённый нетерминал, и у которых после точки ожидался именно
-            # этот нетерминал. Такие ситуации можно продвинуть.
+            # Ищем все A -> α · B β в M[i][j] и добавляем
+            # A -> α B · β в M[i][k].
+            # previous_start = i: откуда начинался фрагмент у «ждущих» ситуаций.
             for previous_start in range(fragment_start + 1):
                 waiting_states = list(chart[previous_start][fragment_start])
 
@@ -321,21 +314,28 @@ def earley_recognize(
                             waiting_state.shifted_dot(),
                         )
 
-            continue
+            continue  # к этой ситуации шаги B и D не применяем
 
-        expected = state.expected_symbol()
+        expected = state.expected_symbol()  # символ сразу после точки
 
         if symbol_is_nonterminal(expected):
-            # Predict: после точки стоит нетерминал, значит нужно добавить все
-            # его правила в ячейку chart[fragment_end][fragment_end]. Они
-            # стартуют с текущей позиции, потому что именно здесь должен
-            # начаться вывод этого нетерминала.
+            # =============================
+            # Шаг D
+            # =============================
+            # Шаг D: если после точки стоит нетерминал B, добавляем все
+            # правила B -> γ в M[j][j] с точкой перед γ.
+            # После точки большая буква B — раскрываем: все правила B -> γ с точкой в начале.
+            # Они кладутся в M[j][j], то есть «начинаем разбирать B с позиции j».
             for production in grammar[expected]:
                 put_state(fragment_end, fragment_end, EarleyState(expected, production, 0))
 
-            # Если нужный нетерминал уже был распознан ранее, сразу используем
-            # этот факт и продвигаем текущее состояние. Это не отдельный новый
-            # принцип, а ускоренная проверка уже заполненных ячеек таблицы.
+            # =============================
+            # Шаг C
+            # =============================
+            # Шаг C для уже заполненных ячеек: если B -> γ · уже есть
+            # в M[j][k], сразу добавляем A -> α B · β в M[i][k].
+            # Если B уже где-то полностью разобран (B -> γ · в M[j][k]),
+            # сразу продвигаем текущую ситуацию A -> α · B β -> A -> α B · β в M[i][k].
             for known_end in range(fragment_end, word_length + 1):
                 completed_states = list(chart[fragment_end][known_end])
 
@@ -343,13 +343,19 @@ def earley_recognize(
                     if completed_state.left == expected and completed_state.completed():
                         put_state(fragment_start, known_end, state.shifted_dot())
         else:
-            # Scan: после точки терминал. Его можно "прочитать" только если
-            # слово ещё не закончилось и текущий символ совпадает с ожидаемым.
+            # =============================
+            # Шаг B
+            # =============================
+            # Шаг B: если после точки стоит терминал a и он совпадает со
+            # следующим символом слова, переносим точку за этот терминал.
+            # После точки буква из слова (терминал). Если она совпала с word[j] —
+            # сдвигаем точку и переносим ситуацию в M[i][j+1].
             if fragment_end < word_length and word[fragment_end] == expected:
                 put_state(fragment_start, fragment_end + 1, state.shifted_dot())
 
     # Слово принято, если в ячейке chart[0][n] есть завершённое стартовое
     # правило: оно покрывает весь ввод от начала до конца.
+    # Проверка ответа: в M[0][n] должно быть завершённое правило S -> ... ·
     for production in grammar[start_symbol]:
         final_state = EarleyState(start_symbol, production, len(production))
 
@@ -358,82 +364,34 @@ def earley_recognize(
 
     return False, chart
 
-def colorize_state(
-    state: EarleyState,
-    start: int,
-    end: int,
-    word_length: int,
-    start_symbol: str,
-) -> str:
-    """Раскрашивает состояние в зависимости от его роли в таблице."""
-    text = render_state(state)
-
-    # Полное стартовое состояние, покрывающее всё слово, является главным
-    # доказательством того, что слово принадлежит языку грамматики.
-    if start == 0 and end == word_length and state.left == start_symbol and state.completed():
-        return TerminalColor.BOLD + TerminalColor.GREEN + text + TerminalColor.RESET
-
-    # Завершённые промежуточные состояния полезно выделить отдельно: они уже
-    # могут продвигать другие ситуации на этапе Complete.
-    if state.completed():
-        return TerminalColor.CYAN + text + TerminalColor.RESET
-
-    # Незавершённые состояния показывают, что алгоритм ещё ожидает какие-то
-    # терминалы или нетерминалы.
-    return TerminalColor.YELLOW + text + TerminalColor.RESET
-
 
 def sort_states(states: set[EarleyState]) -> list[EarleyState]:
     """Сортирует состояния, чтобы таблица печаталась одинаково при каждом запуске."""
     return sorted(states, key=lambda state: (state.left, state.right, state.dot_position))
 
 
-def build_printable_table(
-    chart: Chart,
-    start_symbol: str,
-) -> tuple[list[list[list[str]]], list[list[list[str]]], list[int]]:
+def build_printable_table(chart: Chart) -> tuple[list[list[list[str]]], list[int]]:
     """Подготавливает данные для красивой печати таблицы.
 
-    Нужны две версии текста:
-    1. plain_cells - без цветов, по ним считаем ширину колонок;
-    2. color_cells - с ANSI-кодами, их реально выводим в терминал.
-
-    Если считать ширину по цветной строке, таблица "поедет", потому что
-    невидимые ANSI-коды увеличивают длину строки для Python, но не занимают
-    места на экране.
+    Все состояния печатаются одним обычным цветом терминала.
     """
     word_length = len(chart) - 1
-    plain_cells: list[list[list[str]]] = []
-    color_cells: list[list[list[str]]] = []
+    cells: list[list[list[str]]] = []
 
     for row_index in range(word_length + 1):
-        plain_row: list[list[str]] = []
-        color_row: list[list[str]] = []
+        row: list[list[str]] = []
 
         for column_index in range(word_length + 1):
             states = sort_states(chart[row_index][column_index])
 
             if states:
-                plain_lines = [render_state(state) for state in states]
-                color_lines = [
-                    colorize_state(
-                        state,
-                        row_index,
-                        column_index,
-                        word_length,
-                        start_symbol,
-                    )
-                    for state in states
-                ]
+                lines = [render_state(state) for state in states]
             else:
-                plain_lines = [""]
-                color_lines = [""]
+                lines = [""]  # пустая ячейка
 
-            plain_row.append(plain_lines)
-            color_row.append(color_lines)
+            row.append(lines)
 
-        plain_cells.append(plain_row)
-        color_cells.append(color_row)
+        cells.append(row)
 
     column_widths: list[int] = []
 
@@ -441,20 +399,20 @@ def build_printable_table(
         width = len(f"j={column_index}")
 
         for row_index in range(word_length + 1):
-            for line in plain_cells[row_index][column_index]:
+            for line in cells[row_index][column_index]:
                 width = max(width, len(line))
 
         # Небольшой запас делает таблицу менее сжатой.
         column_widths.append(width + 2)
 
-    return plain_cells, color_cells, column_widths
+    return cells, column_widths
 
 
-def print_table(chart: Chart, start_symbol: str) -> None:
+def print_table(chart: Chart) -> None:
     """Печатает таблицу chart[i][j] после работы алгоритма."""
     word_length = len(chart) - 1
     row_header_width = 6
-    plain_cells, color_cells, column_widths = build_printable_table(chart, start_symbol)
+    cells, column_widths = build_printable_table(chart)
 
     def border() -> str:
         line = "+"
@@ -484,7 +442,7 @@ def print_table(chart: Chart, start_symbol: str) -> None:
 
     for row_index in range(word_length + 1):
         row_height = max(
-            len(plain_cells[row_index][column_index])
+            len(cells[row_index][column_index])
             for column_index in range(word_length + 1)
         )
 
@@ -499,18 +457,15 @@ def print_table(chart: Chart, start_symbol: str) -> None:
             row += "|"
 
             for column_index in range(word_length + 1):
-                plain_lines = plain_cells[row_index][column_index]
-                color_lines = color_cells[row_index][column_index]
+                lines = cells[row_index][column_index]
 
-                if line_index < len(plain_lines):
-                    plain_text = plain_lines[line_index]
-                    color_text = color_lines[line_index]
+                if line_index < len(lines):
+                    text = lines[line_index]
                 else:
-                    plain_text = ""
-                    color_text = ""
+                    text = ""
 
-                padding = " " * (column_widths[column_index] - len(plain_text))
-                row += color_text + padding + "|"
+                padding = " " * (column_widths[column_index] - len(text))
+                row += text + padding + "|"
 
             print(row)
 
@@ -553,7 +508,7 @@ def check_word(grammar: Grammar, start_symbol: str) -> None:
     accepted, chart = earley_recognize(grammar, start_symbol, word)
 
     print(f"Слово: {''.join(word) if word else 'ε'}")
-    print_table(chart, start_symbol)
+    print_table(chart)
     print_result(word, accepted)
 
 
@@ -561,14 +516,21 @@ def print_menu() -> None:
     """Показывает доступные действия."""
     print("1. Проверить слово")
     print("2. Показать грамматику")
-    print("3. Изменить грамматику")
-    print("4. Вернуть грамматику по умолчанию")
     print("0. Выход\n")
 
 
 def main() -> None:
     """Главный цикл консольной программы."""
-    grammar, start_symbol = default_grammar()
+    try:
+        grammar, start_symbol = load_grammar_from_file(GRAMMAR_FILE_PATH)
+    except (OSError, ValueError) as error:
+        print(f"Не удалось загрузить грамматику из файла {GRAMMAR_FILE_NAME}.")
+        print(f"Ошибка: {error}")
+        print("Исправьте файл грамматики и запустите программу заново.")
+        return
+
+    print(f"Грамматика загружена из файла {GRAMMAR_FILE_NAME}.")
+    print_grammar(grammar, start_symbol)
 
     while True:
         print_menu()
@@ -577,13 +539,6 @@ def main() -> None:
         if choice == "1":
             check_word(grammar, start_symbol)
         elif choice == "2":
-            print_grammar(grammar, start_symbol)
-        elif choice == "3":
-            grammar, start_symbol = input_custom_grammar()
-            print_grammar(grammar, start_symbol)
-        elif choice == "4":
-            grammar, start_symbol = default_grammar()
-            print("Грамматика по умолчанию восстановлена.")
             print_grammar(grammar, start_symbol)
         elif choice == "0":
             print("Выход.")
