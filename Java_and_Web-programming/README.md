@@ -1,6 +1,6 @@
-# bootSamples — модуль simpleDao (блокнот баллов)
+# Java и веб-программирование — модуль simpleDao (блокнот баллов)
 
-Репозиторий содержит один Gradle-модуль **`simpleDao`** — веб-приложение «Блокнот баллов»: очередь задач, журнал выполненных действий, сумма баллов и сохранение в БД (H2 локально или PostgreSQL в Docker). Образ Docker собирается **только из `simpleDao/`** (`docker-compose.yml` в корне).
+В каталоге ` simpleDao ` лежит один Gradle-модуль — веб-приложение «Блокнот баллов»: очередь задач, журнал выполненных действий, сумма баллов и сохранение в БД (H2 локально или PostgreSQL в Docker). Образ Docker собирается **только из `simpleDao/`** (`docker-compose.yml` в корне).
 
 ---
 
@@ -30,7 +30,7 @@
 
 ### Вариант A — Docker Compose (PostgreSQL + приложение + Adminer)
 
-Из корня репозитория (`bootSamples`):
+Из корня ` Java_and_Web-programming `:
 
 ```bash
 docker compose up --build
@@ -93,7 +93,7 @@ simpleDao/
 │   ├── db/postgres-ui-help.sql    # комментарии и VIEW для PostgreSQL
 │   ├── templates/notebook.html
 │   └── static/styles.css
-docker-compose.yml                  # в корне bootSamples
+docker-compose.yml                  # в корне Java_and_Web-programming
 ```
 
 Корневой **`settings.gradle`** подключает только **`simpleDao`**; **`build.gradle`** в корне — лёгкий агрегатор без зависимостей приложения.
