@@ -1,0 +1,28 @@
+[project]
+name = "crypto-math"
+version = "0.1.0"
+description = "Арифметический инструментарий магистерского курса по асимметричной криптографии"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy",
+    "matplotlib",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "hypothesis",
+    "ipykernel",
+]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["crypto_math*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"
