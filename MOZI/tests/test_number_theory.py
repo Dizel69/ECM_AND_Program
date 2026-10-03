@@ -11,6 +11,7 @@ from crypto_math.number_theory import (
     gcd,
     mod_inverse,
     mod_pow,
+    random_exact_bits,
     solve_linear,
     solve_linear_diophantine,
 )
@@ -112,3 +113,15 @@ def test_solve_linear_matches_definition(a, b, n):
 def test_solve_linear_rejects_small_modulus():
     with pytest.raises(ValueError):
         solve_linear(1, 1, 1)
+
+
+def test_random_exact_bits_has_requested_length():
+    for bits in (1, 2, 8, 64, 512):
+        value = random_exact_bits(bits)
+        assert value > 0
+        assert value.bit_length() == bits
+
+
+def test_random_exact_bits_rejects_non_positive():
+    with pytest.raises(ValueError):
+        random_exact_bits(0)

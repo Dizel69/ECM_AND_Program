@@ -4,6 +4,18 @@
 `math.gcd`, `pow(a, -1, n)`, SymPy или Sage: они допустимы только в тестах.
 """
 
+import secrets
+
+
+def random_exact_bits(bits: int) -> int:
+    """Возвращает положительное целое ровно заданной битовой длины."""
+    if bits < 1:
+        raise ValueError("bits должно быть положительным")
+
+    n = secrets.randbits(bits)
+    n |= 1 << (bits - 1)
+    return n
+
 
 def divides(a: int, b: int) -> bool:
     """True тогда и только тогда, когда a делит b.
