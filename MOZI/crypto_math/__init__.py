@@ -9,6 +9,15 @@ from .number_theory import (
     mod_pow,
     crt,
     garner_crt,
+    is_prime_fast,
+    primes,
+    next_prime,
+    smallest_factor,
+    decompose,
+    euler_phi,
+    multiplicative_order,
+    is_primitive_root,
+    primitive_root,
 )
 
 __all__ = [
@@ -22,4 +31,13 @@ __all__ = [
     "mod_pow",
     "crt",
     "garner_crt",
+    "is_prime_fast",
+    "primes",
+    "next_prime",
+    "smallest_factor",
+    "decompose",
+    "euler_phi",
+    "multiplicative_order",
+    "is_primitive_root",
+    "primitive_root",
 ]

@@ -1,9 +1,10 @@
-"""Контракты ноутбука 1.
+"""Контракты ноутбуков 1–3.
 
 В этом модуле нельзя подменять изучаемые алгоритмы готовыми
 `math.gcd`, `pow(a, -1, n)`, SymPy или Sage: они допустимы только в тестах.
 """
 
+import math
 import secrets
 
 
@@ -194,3 +195,206 @@ def garner_crt(residues: list[int], moduli: list[int]) -> int:
         x += coefficient * product
         product *= modulus
     return x
+
+
+def is_prime_fast(n: int) -> bool:
+    """Простое ли n: перебор делителей до floor(sqrt(n)).
+
+    Составное n = a*b, 1 < a <= b, обязательно имеет делитель a <= sqrt(n).
+    Если такого делителя нет и n > 1, число простое. После двойки достаточно
+    нечётных кандидатов: чётное d > 2 само делится на 2.
+    """
+    # 0, 1 и отрицательные простыми не бывают.
+    if n < 2:
+        return False
+    # Единственное чётное простое — это 2.
+    if n % 2 == 0:
+        return n == 2
+    # math.isqrt — точный floor(sqrt(n)). Возведение n ** 0.5 для больших n врёт.
+    limit = math.isqrt(n)
+    for d in range(3, limit + 1, 2):
+        if n % d == 0:
+            return False
+    return True
+
+
+def primes(n: int) -> list[int]:
+    """Все простые p <= n. Решето из ноутбука 2; при n < 2 список пуст.
+
+    В списке кандидатов остаются только нечётные. Пока очередное p не больше
+    sqrt(n), вычёркиваем его кратные. Когда p уже больше sqrt(n), всё, что
+    осталось в списке, простое: меньший простой делитель уже вычеркнул бы его.
+    """
+    if n < 2:
+        return []
+
+    # Двойку храним отдельно, чтобы дальше шагать по нечётным.
+    candidates = list(range(3, n + 1, 2))
+    found = [2]
+    limit = math.isqrt(n)
+    while candidates:
+        p = candidates[0]
+        if p > limit:
+            found.extend(candidates)
+            break
+        found.append(p)
+        # Кратные p составные. Само p в новый список не попадает: p % p == 0.
+        candidates = [x for x in candidates if x % p != 0]
+    return found
+
+
+def next_prime(n: int) -> int:
+    """Наименьшее простое число, строго большее n. При n < 2 это 2.
+
+    После 2 все простые нечётны, поэтому чётный кандидат пропускается
+    и дальше шаг равен 2.
+    """
+    if n < 2:
+        return 2
+    if n == 2:
+        return 3
+    candidate = n + 1
+    if candidate % 2 == 0:
+        candidate += 1
+    while not is_prime_fast(candidate):
+        candidate += 2
+    return candidate
+
+
+def smallest_factor(n: int) -> int | None:
+    """Наименьший простой делитель n >= 2. Для простого n возвращает само n.
+
+    Наименьший делитель d > 1 всегда прост: иначе у d был бы делитель ещё меньше,
+    и он делил бы n. Для n < 2 простого делителя нет, возвращается None.
+    """
+    if n < 2:
+        return None
+    if n % 2 == 0:
+        return 2
+    for d in range(3, math.isqrt(n) + 1, 2):
+        if n % d == 0:
+            return d
+    # Делителя до sqrt(n) нет, значит n само простое.
+    return n
+
+
+def decompose(n: int) -> dict[int, int]:
+    """Каноническое разложение n >= 1: словарь {простое: показатель}.
+
+    Для n = 1 простых множителей нет, словарь пустой. Показатель копится,
+    пока smallest_factor возвращает одно и то же p.
+    """
+    if n < 1:
+        raise ValueError("n must be >= 1")
+
+    value = n
+    factors: dict[int, int] = {}
+    while value > 1:
+        p = smallest_factor(value)
+        # Одно и то же p может делить value несколько раз: 12 = 2^2 * 3.
+        factors[p] = factors.get(p, 0) + 1
+        value //= p
+    return factors
+
+
+def euler_phi(n: int) -> int:
+    """Функция Эйлера φ(n) = n * ∏_{p|n} (1 - 1/p).
+
+    Для каждого различного простого p | n вычитается n/p, затем (n - n/p)/q
+    и так далее. Это и есть формула (3.8): на степень p^e множитель один,
+    φ(p^e) = p^e - p^{e-1}.
+    """
+    if n < 1:
+        raise ValueError("n must be >= 1")
+
+    result = n
+    for p in decompose(n):
+        result -= result // p
+    return result
+
+
+def multiplicative_order(a: int, n: int, t: int | None = None) -> int:
+    """Порядок a по модулю n: наименьшее k >= 1 с a^k ≡ 1 (mod n).
+
+    По теореме Лагранжа порядок делит φ(n), поэтому искать его можно среди
+    делителей известного кратного t. По умолчанию t = φ(n). Если разложение
+    порядка группы уже известно (для простого p это p - 1), его передают в t
+    и само n заново не раскладывают.
+
+    Алгоритм: для каждого простого q | t, пока q делит t и a^{t/q} ≡ 1,
+    делим t на q. Уменьшать t можно только тогда, когда порядок делит t/q.
+    В конце ни один простой множитель убрать нельзя, значит t и есть порядок.
+    """
+    if n < 2:
+        raise ValueError("n must be >= 2")
+    if gcd(a, n) != 1:
+        raise ValueError("a and n must be coprime")
+    if t is None:
+        t = euler_phi(n)
+    if t < 1:
+        raise ValueError("t must be a positive multiple of the order")
+
+    a %= n
+    # Простые множители фиксируем до того, как начнём уменьшать t.
+    for q in decompose(t):
+        while t % q == 0 and mod_pow(a, t // q, n) == 1:
+            t //= q
+    return t
+
+
+def _primitive_root_modulus(n: int) -> bool:
+    """Теорема 3.2: первообразный корень есть ровно при n = 2, 4, p^k, 2p^k.
+
+    p — нечётное простое, k >= 1. Сначала отбрасываем лишнюю двойку:
+    после одного деления на 2 остаток должен быть нечётным. Затем этот
+    нечётный остаток обязан быть степенью одного простого.
+    """
+    if n in (2, 4):
+        return True
+    odd_part = n
+    if odd_part % 2 == 0:
+        odd_part //= 2
+        # n делится на 4 и больше 4: это не 4 и не 2p^k.
+        if odd_part % 2 == 0:
+            return False
+    if odd_part == 1:
+        return False
+    p = smallest_factor(odd_part)
+    while odd_part % p == 0:
+        odd_part //= p
+    # Если после снятия p что-то осталось, простых множителей больше одного.
+    return odd_part == 1
+
+
+def is_primitive_root(g: int, n: int, t: int | None = None) -> bool:
+    """Критерий (3.20): g — первообразный корень по модулю n.
+
+    Порядок g равен φ(n) тогда и только тогда, когда g^{φ(n)/q} ≢ 1
+    ни для одного простого q | φ(n). Любой меньший делитель φ(n) делит
+    φ(n)/q хотя бы для одного такого q. t — порядок группы, по умолчанию φ(n).
+    """
+    if n < 2 or gcd(g, n) != 1:
+        return False
+    if t is None:
+        t = euler_phi(n)
+    g %= n
+    for q in decompose(t):
+        if mod_pow(g, t // q, n) == 1:
+            return False
+    return True
+
+
+def primitive_root(n: int) -> int | None:
+    """Наименьший первообразный корень по модулю n, либо None, если его нет.
+
+    Сначала теорема 3.2 отсекает модули, у которых корня нет вообще.
+    Если форма модуля подходящая, кандидаты идут по возрастанию, поэтому
+    первый успех критерия (3.20) — наименьший корень.
+    """
+    if n < 2 or not _primitive_root_modulus(n):
+        return None
+    group_order = euler_phi(n)
+    for g in range(1, n):
+        if gcd(g, n) == 1 and is_primitive_root(g, n, group_order):
+            return g
+    return None

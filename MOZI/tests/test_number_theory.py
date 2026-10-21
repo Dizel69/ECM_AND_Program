@@ -5,12 +5,18 @@ from hypothesis import given, strategies as st
 
 from crypto_math.number_theory import (
     crt,
+    decompose,
     divides,
+    euler_phi,
     extended_gcd,
     garner_crt,
     gcd,
+    is_prime_fast,
     mod_inverse,
     mod_pow,
+    multiplicative_order,
+    next_prime,
+    primes,
     random_exact_bits,
     solve_linear,
     solve_linear_diophantine,
@@ -125,3 +131,81 @@ def test_random_exact_bits_has_requested_length():
 def test_random_exact_bits_rejects_non_positive():
     with pytest.raises(ValueError):
         random_exact_bits(0)
+
+
+def test_is_prime_fast_agrees_with_primes_up_to_10000():
+    # Одно и то же множество простых двумя алгоритмами: перебор делителей и решето.
+    # Граница 10^4 включена, primes(limit) — это простые p <= limit.
+    limit = 10_000
+    assert primes(limit) == [n for n in range(limit + 1) if is_prime_fast(n)]
+
+
+@pytest.mark.parametrize("n", list(range(-3, 400)) + [10**4, 10**5])
+def test_next_prime_is_the_immediate_successor(n):
+    # next_prime(n) простое, строго больше n, и между ними простых нет.
+    # Для n < 2 ответ равен 2: отрицательные и 0, 1 тоже попадают в этот контракт.
+    prime = next_prime(n)
+    assert prime > n
+    assert is_prime_fast(prime)
+    assert not any(is_prime_fast(candidate) for candidate in range(n + 1, prime))
+
+
+def _recompose(factors: dict[int, int]) -> int:
+    # Обратная операция к decompose: пустой словарь даёт 1, иначе произведение p^e.
+    value = 1
+    for prime, exponent in factors.items():
+        value *= prime**exponent
+    return value
+
+
+def _divisors(n: int) -> list[int]:
+    # Все делители по разложению. На каждый простой p^e список умножается
+    # на 1, p, ..., p^e. Для взаимно простых множителей это даёт каждый делитель один раз.
+    divisors = [1]
+    for prime, exponent in decompose(n).items():
+        divisors = [
+            divisor * prime**power
+            for divisor in divisors
+            for power in range(exponent + 1)
+        ]
+    return divisors
+
+
+@given(st.integers(min_value=1, max_value=4000))
+def test_recompose_inverts_decompose(n):
+    # Разложение и сборка взаимно обратны: канонический вид не теряет множители.
+    assert _recompose(decompose(n)) == n
+
+
+@given(
+    st.integers(min_value=2, max_value=3000),
+    st.integers(min_value=0, max_value=3000),
+)
+def test_euler_theorem_for_units(n, a):
+    # Теорема Эйлера: если gcd(a, n) = 1, то a^{φ(n)} ≡ 1 (mod n).
+    # Необратимый a в проверку не входит: для него степень единицы не обещана.
+    residue = a % n
+    if math.gcd(residue, n) != 1:
+        return
+    assert pow(residue, euler_phi(n), n) == 1
+
+
+@given(
+    st.integers(min_value=2, max_value=2000),
+    st.integers(min_value=0, max_value=2000),
+)
+def test_multiplicative_order_divides_group_order(n, a):
+    # Порядок элемента делит порядок группы, и a^{порядок} ≡ 1.
+    # Второе равенство ловит ответ, который делит φ(n), но слишком большой.
+    residue = a % n
+    if math.gcd(residue, n) != 1:
+        return
+    order = multiplicative_order(residue, n)
+    assert euler_phi(n) % order == 0
+    assert pow(residue, order, n) == 1
+
+
+@given(st.integers(min_value=1, max_value=1500))
+def test_euler_phi_sums_to_n_over_divisors(n):
+    # Тождество (3.18): сумма φ(d) по всем d | n равна n.
+    assert sum(euler_phi(d) for d in _divisors(n)) == n

@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.py[cod]
+output/
+
+# Веса и фотографии не код. Гит показывает их как тысячи строк.
+models/
+*.onnx
+*.png
+*.jpg
+*.jpeg
+*.webp
