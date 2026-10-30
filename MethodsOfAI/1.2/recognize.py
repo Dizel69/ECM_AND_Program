@@ -5,7 +5,8 @@
     source .venv/bin/activate
     python recognize.py
 
-В терминал печатаются найденные строки. Картинки и рамки программа не сохраняет.
+В терминал печатаются найденные строки. Области текста рисует VisRes
+и сразу открывает картинку.
 
 Интернет после установки не нужен. Веса уже лежат в папке models/.
 Библиотека rapidocr при первом запуске скачала их сама и с тех пор
@@ -27,11 +28,12 @@ from pathlib import Path
 
 import cv2
 import numpy as np
-from rapidocr import LangRec, ModelType, OCRVersion, RapidOCR
+from PIL import Image
+from rapidocr import LangRec, ModelType, OCRVersion, RapidOCR, VisRes
 
 # Какой файл читать. Меняется только эта строка.
 # Путь относительно папки 1.2. Можно подставить свой файл.
-IMAGE = "photos/buhanka.jpg"
+IMAGE = "photos/1.jpg"
 
 # Другие фото, которые уже лежат рядом:
 # photos/cafe.png
@@ -98,6 +100,13 @@ def main() -> None:
     # (обычно сверху вниз). Если текста нет, там None, поэтому подставляем ().
     lines = result.txts or ()
     print("\n".join(lines) if lines else "Текст не найден.")
+
+    # draw_dt_boxes — встроенная функция. Рисует границы найденного текста.
+    if result.boxes is not None:
+        picture = VisRes().draw_dt_boxes(image, result.boxes, result.scores)
+        out = path.with_name(path.stem + "_areas.png")
+        cv2.imencode(".png", picture)[1].tofile(out)
+        Image.open(out).show()
 
 
 # Этот блок выполняется только когда файл запустили напрямую:
