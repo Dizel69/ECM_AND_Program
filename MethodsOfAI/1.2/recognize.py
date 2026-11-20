@@ -33,7 +33,7 @@ from rapidocr import LangRec, ModelType, OCRVersion, RapidOCR, VisRes
 
 # Какой файл читать. Меняется только эта строка.
 # Путь относительно папки 1.2. Можно подставить свой файл.
-IMAGE = "photos/1.jpg"
+IMAGE = "photos/buhanka.jpg"
 
 # Другие фото, которые уже лежат рядом:
 # photos/cafe.png

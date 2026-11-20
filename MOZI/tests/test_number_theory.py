@@ -9,9 +9,15 @@ from crypto_math.number_theory import (
     divides,
     euler_phi,
     extended_gcd,
+    find_g_safe,
+    find_p_g,
     garner_crt,
     gcd,
+    generate_safe_prime,
     is_prime_fast,
+    is_prime_mr,
+    miller_rabin,
+    miller_rabin_round,
     mod_inverse,
     mod_pow,
     multiplicative_order,
@@ -209,3 +215,104 @@ def test_multiplicative_order_divides_group_order(n, a):
 def test_euler_phi_sums_to_n_over_divisors(n):
     # Тождество (3.18): сумма φ(d) по всем d | n равна n.
     assert sum(euler_phi(d) for d in _divisors(n)) == n
+
+
+def test_miller_rabin_rejects_bad_rounds_and_handles_small_n():
+    # t — число раундов. Ноль, отрицательное и bool не являются положительным целым.
+    for bad_t in (0, -1, True):
+        with pytest.raises(ValueError):
+            miller_rabin(5, bad_t)
+        with pytest.raises(ValueError):
+            is_prime_mr(5, bad_t)
+    # Малые и чётные значения не зависят от случайных оснований.
+    # -2..1 не простые, 2, 3 и 5 простые, 4 и 6 чётные составные.
+    assert [miller_rabin(n, 1) for n in range(-2, 7)] == [
+        False,
+        False,
+        False,
+        False,
+        True,
+        True,
+        False,
+        True,
+        False,
+    ]
+    assert [is_prime_mr(n) for n in range(-2, 7)] == [
+        False,
+        False,
+        False,
+        False,
+        True,
+        True,
+        False,
+        True,
+        False,
+    ]
+
+
+def test_single_round_is_not_a_primality_test():
+    # 2047 сильно псевдопросто по основанию 2, но составное.
+    # Один пройденный раунд и ответ теста простоты здесь расходятся.
+    assert miller_rabin_round(2047, 2) is True
+    assert is_prime_mr(2047) is False
+    # 91: основание 2 — свидетель, основание 9 — сильный лжец.
+    assert miller_rabin_round(91, 2) is False
+    assert miller_rabin_round(91, 9) is True
+    # В диапазоне 2..7 у числа 9 сильных лжецов нет, поэтому даже один раунд отвергает его.
+    assert miller_rabin(9, 1) is False
+
+
+def test_is_prime_mr_matches_exact_test_on_a_small_range():
+    # Сравнение в обе стороны: и простые принимаются, и составные отклоняются.
+    # Диапазон маленький, точный перебор делителей здесь ещё практичен.
+    for n in range(-5, 2001):
+        assert is_prime_mr(n) is is_prime_fast(n)
+
+
+def test_deterministic_branch_catches_pseudoprime_without_small_factor():
+    # 25 326 001 = 2251 * 11251. Оба множителя больше 997, пробное деление их не видит.
+    # Число сильно псевдопросто по основаниям 2, 3 и 5, но не по всему набору из 12.
+    assert miller_rabin_round(25326001, 2) is True
+    assert is_prime_mr(25326001) is False
+    # Произведение двух простых больше 997 тоже доходит до детерминированной ветви.
+    assert is_prime_mr(1009 * 1013) is False
+    assert is_prime_mr(1000000000061) is True
+    assert is_prime_mr(1000000000063) is True
+
+
+def test_generate_safe_prime_contract():
+    for bad_bits in (3, 0, -4, True):
+        with pytest.raises(ValueError):
+            generate_safe_prime(bad_bits)
+    with pytest.raises(ValueError):
+        generate_safe_prime(8, 0)
+    # При 4 и 5 битах подходящая пара единственна, случайный перебор обязан её найти.
+    assert generate_safe_prime(4) == (11, 5)
+    assert generate_safe_prime(5) == (23, 11)
+    for bits in (8, 12, 16):
+        p, q = generate_safe_prime(bits)
+        assert p == 2 * q + 1
+        assert p.bit_length() == bits
+        assert q.bit_length() == bits - 1
+        assert is_prime_fast(p) and is_prime_fast(q)
+
+
+def test_find_g_safe_returns_least_primitive_root():
+    assert find_g_safe(23, 11) == 5
+    assert pow(5, 11, 23) == 22
+    assert multiplicative_order(5, 23, 22) == 22
+    assert find_g_safe(11, 5) == 2
+    with pytest.raises(ValueError):
+        find_g_safe(23, 10)
+    # 15 = 2*7+1, но 15 составное: ни один g не даёт остаток 14, это ошибка предпосылки.
+    with pytest.raises(ValueError):
+        find_g_safe(15, 7)
+
+
+def test_find_p_g_matches_safe_prime_and_root():
+    p, q, g = find_p_g(12)
+    assert p == 2 * q + 1
+    assert g == find_g_safe(p, q)
+    assert pow(g, q, p) == p - 1
+    assert is_prime_fast(p) and is_prime_fast(q)
+    assert multiplicative_order(g, p, p - 1) == p - 1

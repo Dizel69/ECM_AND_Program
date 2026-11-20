@@ -19,6 +19,7 @@ notebook = [
     "matplotlib",
     "ipykernel",
     "mpmath>=1.3",
+    "sympy",
 ]
 
 [tool.pytest.ini_options]

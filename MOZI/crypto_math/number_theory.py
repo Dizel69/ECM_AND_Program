@@ -1,10 +1,11 @@
-"""Контракты ноутбуков 1–3.
+"""Контракты ноутбуков 1–4.
 
 В этом модуле нельзя подменять изучаемые алгоритмы готовыми
 `math.gcd`, `pow(a, -1, n)`, SymPy или Sage: они допустимы только в тестах.
 """
 
 import math
+import random
 import secrets
 
 
@@ -398,3 +399,157 @@ def primitive_root(n: int) -> int | None:
         if gcd(g, n) == 1 and is_primitive_root(g, n, group_order):
             return g
     return None
+
+
+def _positive_rounds(t: int) -> None:
+    # bool в Python является int, но числом раундов быть не может.
+    if type(t) is not int or t < 1:
+        raise ValueError("t должно быть положительным целым")
+
+
+def _two_power_odd_part(m: int) -> tuple[int, int]:
+    """Разложение m = 2^s * r с нечётным r.
+
+    Для m = n - 1 это запись из утверждения о нечётном простом:
+    дальше сильный тест смотрит степени a^r, a^{2r}, a^{4r}, ...
+    """
+    s = 0
+    r = m
+    while r % 2 == 0:
+        # Каждый чётный шаг забирает одну двойку в показатель s.
+        r //= 2
+        s += 1
+    return s, r
+
+
+def _strong_round(n: int, s: int, r: int, a: int) -> bool:
+    """Один сильный раунд. True — раунд пройден, False — a доказывает составность.
+
+    Если при возведении в квадрат остатка, отличного от ±1, получилась 1,
+    у модуля есть нетривиальный квадратный корень из единицы, и n составное.
+    """
+    y = mod_pow(a, r, n)
+    if y == 1 or y == n - 1:
+        return True
+    for _ in range(s - 1):
+        y = (y * y) % n
+        if y == n - 1:
+            return True
+        if y == 1:
+            return False
+    return False
+
+
+def miller_rabin_round(n: int, a: int) -> bool:
+    """Один сильный тест Миллера—Рабина по явному основанию a.
+
+    False — свидетель составности. True — раунд пройден, простота не доказана.
+    Это перенос `miller_rabin_det`: s и r здесь восстанавливаются из n,
+    а не передаются снаружи. Предусловие то же: нечётное n >= 5, 2 <= a <= n-2.
+    """
+    s, r = _two_power_odd_part(n - 1)
+    return _strong_round(n, s, r, a)
+
+
+def miller_rabin(n: int, t: int = 50) -> bool:
+    """До t независимых сильных раундов со случайным основанием из 2..n-2.
+
+    True не доказывает простоту: для фиксированного нечётного составного
+    вероятность пройти все t раундов меньше 4^{-t}. False доказывает составность.
+    """
+    _positive_rounds(t)
+    if n < 2:
+        return False
+    # 2 и 3 простые, но диапазон 2..n-2 для них пуст: раунды не запускаем.
+    if n in (2, 3):
+        return True
+    if n % 2 == 0:
+        return False
+
+    # Разложение n-1 одно на все раунды: от основания оно не зависит.
+    s, r = _two_power_odd_part(n - 1)
+    for _ in range(t):
+        a = random.randint(2, n - 2)
+        if not _strong_round(n, s, r, a):
+            return False
+    return True
+
+
+# Простые p <= 997 отсекают заведомо составные кандидаты до случайных раундов.
+_TRIAL_PRIMES = primes(997)
+# ψ_12 > 2^64: нечётное n < 2^64, прошедшее сильный тест по первым 12 простым
+# основаниям, простое. Само 2^64 чётное и отсекается делением на 2.
+_MR_BASES = (2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37)
+_MR_LIMIT = 2**64
+
+
+def is_prime_mr(n: int, t: int = 50) -> bool:
+    """Проверка простоты: пробное деление, фиксированные основания, затем случайные раунды.
+
+    Для n < 2^64 положительный ответ доказывает простоту. Выше этой границы
+    True означает только, что t случайных раундов пройдены.
+    """
+    _positive_rounds(t)
+    if n < 2:
+        return False
+    for prime in _TRIAL_PRIMES:
+        if n == prime:
+            return True
+        # Собственный простой делитель <= 997 доказывает составность.
+        if n % prime == 0:
+            return False
+    if n < _MR_LIMIT:
+        # После пробного деления n > 997, поэтому каждое основание меньше n-2.
+        s, r = _two_power_odd_part(n - 1)
+        for a in _MR_BASES:
+            if not _strong_round(n, s, r, a):
+                return False
+        return True
+    return miller_rabin(n, t)
+
+
+def generate_safe_prime(bits: int, t: int = 50) -> tuple[int, int]:
+    """Безопасное простое p ровно из bits бит и простое q = (p - 1) / 2.
+
+    Сначала проверяется q, затем p = 2q + 1. Для больших bits оба ответа
+    вероятностные: 4^{-t} ограничивает ошибку на одном фиксированном
+    составном кандидате, а не вероятность ошибки всей генерации.
+    """
+    if type(bits) is not int or bits < 4:
+        raise ValueError("bits должно быть целым >= 4")
+    _positive_rounds(t)
+    while True:
+        # Старший бит уже стоит. Младший делаем единицей, длина не меняется.
+        q = random_exact_bits(bits - 1) | 1
+        if not is_prime_mr(q, t):
+            continue
+        p = 2 * q + 1
+        if is_prime_mr(p, t):
+            return p, q
+
+
+def find_g_safe(p: int, q: int) -> int:
+    """Наименьший первообразный корень по модулю безопасного простого p = 2q + 1.
+
+    Для 2 <= g <= p-2 условие g^2 ≢ 1 уже выполнено, поэтому порядок равен 2q
+    ровно тогда, когда g^q ≡ -1 (mod p). Простоту на каждом g заново не проверяем:
+    её обещает вызывающий код. Если такого g нет, параметры не удовлетворяют предположению.
+    """
+    if type(p) is not int or type(q) is not int or p < 5 or p != 2 * q + 1:
+        raise ValueError("нужны целые p, q с p = 2*q + 1 и p >= 5")
+    for g in range(2, p - 1):
+        # В задании 4.27 сравнение записано именно так, не через mod_pow.
+        if pow(g, q, p) == p - 1:
+            return g
+    raise ValueError("первообразный корень не найден: проверьте предпосылки p и q")
+
+
+def find_p_g(bits: int, t: int = 50) -> tuple[int, int, int]:
+    """Тройка (p, q, g): безопасное простое, его (p-1)/2 и наименьший первообразный корень.
+
+    q сохраняется для подгруппы порядка q. При больших bits простота p и q
+    установлена вероятностным тестом, а не доказана.
+    """
+    p, q = generate_safe_prime(bits, t)
+    g = find_g_safe(p, q)
+    return p, q, g

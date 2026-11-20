@@ -18,6 +18,12 @@ from .number_theory import (
     multiplicative_order,
     is_primitive_root,
     primitive_root,
+    miller_rabin_round,
+    miller_rabin,
+    is_prime_mr,
+    generate_safe_prime,
+    find_g_safe,
+    find_p_g,
 )
 
 __all__ = [
@@ -40,4 +46,10 @@ __all__ = [
     "multiplicative_order",
     "is_primitive_root",
     "primitive_root",
+    "miller_rabin_round",
+    "miller_rabin",
+    "is_prime_mr",
+    "generate_safe_prime",
+    "find_g_safe",
+    "find_p_g",
 ]
